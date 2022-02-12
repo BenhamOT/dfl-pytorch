@@ -1,0 +1,41 @@
+{
+	"src_frame_extraction_input_file": "workspace/data_src/",
+	"src_frame_extraction_output_dir": "workspace/data_src",
+	"src_frame_extraction_fps": 0,
+	"src_frame_extraction_file_type": "jpg",
+
+	"src_extract_detector": "s3fd",
+	"src_extract_input_dir": "workspace/data_src",
+	"src_extract_output_dir": "workspace/data_src/aligned",
+	"src_gpu_index": 0,
+	"src_face_type": "whole_face",
+	"src_max_faces_from_image": 1,
+	"src_image_size": 512,
+	"src_jpg_quality": 90,
+
+	"src_sort_input_dir": "workspace/data_src/aligned",
+	"src_sort_method": "hist", 
+
+	"train_src_data_dir": "workspace/data_src/aligned",
+	"train_tgt_data_dir": "workspace/data_dst/aligned",
+	"train_model_dir": "workspace/model",
+	"train_model_name": "SAEHD",
+	"train_gpu_index": 0,
+	"train_number_of_iterations": 17500,
+
+	"merge_input_dir": "workspace/data_dst",
+	"merge_output_dir": "workspace/data_dst/merged",
+	"merge_output_mask_dir": "workspace/data_dst/merged_mask",
+	"merge_aligned_dir": "workspace/data_dst/aligned",
+	"merge_model_dir": "workspace/model",
+	"merge_model_name": "SAEHD",
+	"merge_gpu_index": 0,
+
+	"combine_input_dir": "workspace/data_dst/merged",
+	"combine_output_file": "workspace/result.mp4",
+	"combine_reference_file": "workspace/data_dst/",
+	"combine_inlucde_audio": true,
+	"combine_bitrate": 2,
+	"combine_image_exe": "jpg"
+
+}
