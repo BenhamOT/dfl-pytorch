@@ -23,7 +23,7 @@ def pil_loader(path: str) -> np.ndarray:
     """
     with open(path, 'rb') as f:
         img = Image.open(f)
-        return np.asarray(img.convert('RGB'))
+        return np.asarray(img.convert('RGB'))/255.0
 
 
 def mkdir_or_delete_existing_files(path):

@@ -1,56 +1,107 @@
 import os
+import cv2
+import numpy as np
+import torch
 from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms
-from typing import Optional, Callable
 from extractor.utils import pil_loader
+from extractor.landmarks_processor import get_transform_mat, get_image_hull_mask, get_image_eye_mask
+from trainer.warp_preprocessing import warp_by_params, gen_warp_params
 
 
 class C2CustomImageDataset(Dataset):
-    def __init__(self, workspace_directory: str, transform: Optional[Callable]):
-        self.data_src_aligned_dir = workspace_directory + "data_src/aligned/"
-        self.data_dst_aligned_dir = workspace_directory + "data_dst/aligned/"
+    def __init__(self, src_path: str, dst_path: str, settings: dict = None,
+                 aligned_dir_name: str= "aligned/", landmarks_dir_name: str= "landmarks/"):
+
+        # TODO need to read in settings
+        # define src and dst image and landmark directories
+        self.data_src_aligned_dir = src_path + aligned_dir_name
+        self.data_dst_aligned_dir = dst_path + aligned_dir_name
+        self.data_src_landmarks_dir = src_path + landmarks_dir_name
+        self.data_dst_landmarks_dir = dst_path + landmarks_dir_name
+
+        # get a list of the src and dst image files
         self.src_dir = os.listdir(self.data_src_aligned_dir)
         self.dst_dir = os.listdir(self.data_dst_aligned_dir)
-        self.transform = transform
+
+        # define the settings
+        self.resolution = 128
+        self.border_mode = cv2.BORDER_REPLICATE
+        self.params = None
+        self.warp = False
 
     def __len__(self) -> int:
         return len(self.src_dir)
 
+    def get_face_image(self, img: np.ndarray, landmarks: np.ndarray, warp: bool,
+                       warp_affine_flags=cv2.INTER_CUBIC, masked: bool = False):
+
+        mat = get_transform_mat(image_landmarks=landmarks, output_size=self.resolution)
+        img = cv2.warpAffine(
+            src=img, M=mat, dsize=(self.resolution, self.resolution),
+            borderMode=self.border_mode, flags=warp_affine_flags
+        )
+        img = warp_by_params(
+            params=self.params, img=img, random_warp=warp, transform=True,
+            can_flip=True, border_mode=self.border_mode, cv2_inter=warp_affine_flags
+        )
+        if not masked:
+            img = np.clip(img.astype(np.float32), 0, 1)
+
+        img = np.transpose(img, (2, 0, 1))
+        return torch.from_numpy(img)
+
+    def get_face_mask(self, img: np.ndarray, landmarks: np.ndarray):
+        full_face_mask = get_image_hull_mask(img.shape, landmarks)
+        img = np.clip(full_face_mask, 0, 1)
+
+        eyes_mask = get_image_eye_mask(img.shape, landmarks)
+        clipped_eye_mask = np.clip(eyes_mask, 0, 1)
+        img += clipped_eye_mask * img
+
+        img = self.get_face_image(
+            img=img, landmarks=landmarks, warp=False,
+            warp_affine_flags=cv2.INTER_LINEAR, masked=True
+        )
+        return img
+
     def __getitem__(self, item: int):
+        # TODO find a nicer way of reading in the landmark files (instead of .replace(.jpg, .npy))
+        self.params = gen_warp_params(w=self.resolution)
+        src_image_file = self.src_dir[item]
+        src_landmarks_file = src_image_file.replace(".jpg", ".npy")
+        dst_image_file = self.dst_dir[item]  # need a way to randomly choose a target image from a subnet of target images
+        dst_landmarks_file = dst_image_file.replace(".jpg", ".npy")
+        src_image = pil_loader(self.data_src_aligned_dir + src_image_file)
+        src_landmarks = np.load(self.data_src_landmarks_dir + src_landmarks_file)
+        dst_image = pil_loader(self.data_dst_aligned_dir + dst_image_file)
+        dst_landmarks = np.load(self.data_dst_landmarks_dir + dst_landmarks_file)
 
-        src_file = self.src_dir[item]
-        dst_file = self.dst_dir[item]  # need a way to randomly choose a target image from a subnet of target images
-        src_image = pil_loader(self.data_src_aligned_dir + src_file)
-        dst_image = pil_loader(self.data_dst_aligned_dir + dst_file)
+        # create the warped, target and target mask for the src image
+        warped_src = self.get_face_image(img=src_image.copy(), landmarks=src_landmarks, warp=self.warp)
+        target_src = self.get_face_image(img=src_image.copy(), landmarks=src_landmarks, warp=False)
+        target_src_mask = self.get_face_mask(img=src_image.copy(), landmarks=src_landmarks)
 
-        result = {"src": self.transform(src_image), "dst": self.transform(dst_image)}
+        # create the  warped, target and target mask for the dst image
+        warped_dst = self.get_face_image(img=dst_image.copy(), landmarks=dst_landmarks, warp=self.warp)
+        target_dst = self.get_face_image(img=dst_image.copy(), landmarks=dst_landmarks, warp=False)
+        target_dst_mask = self.get_face_mask(img=dst_image.copy(), landmarks=dst_landmarks)
+
+        result = {
+            "warped_src": warped_src, "target_src": target_src, "target_src_mask": target_src_mask,
+            "warped_dst": warped_dst, "target_dst": target_dst, "target_dst_mask": target_dst_mask
+        }
         return result
 
 
 class C2DataLoader:
-
-    def __init__(self, src_path=None, dst_path=None, batch_size=4):
+    def __init__(self, src_path: str = None, dst_path: str = None, batch_size: int = 4):
         self.src_path = src_path
         self.dst_path = dst_path
         self.batch_size = batch_size
 
-    def run(self):
+    def run(self, **kwargs):
         print("loading image folder")
-        transform = transforms.Compose([
-            # you can add other transformations in this list
-            transforms.ToTensor(),
-            # transforms.Resize((128, 128))
-        ])
-        # data = ImageFolder(root="../workspace/training_data/", transform=transform)
-        data = C2CustomImageDataset(workspace_directory="../workspace/", transform=transform)
+        data = C2CustomImageDataset(src_path=self.src_path, dst_path=self.dst_path, **kwargs)
         print("creating image loader")
         data = DataLoader(data, self.batch_size, shuffle=False)
         return data
-
-
-# loader = C2DataLoader().run()
-#
-# for sample in loader:
-#     print(sample["src"].size(), sample["dst"].size())
-
-

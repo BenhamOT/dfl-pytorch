@@ -5,9 +5,6 @@ from torch.nn import functional as F
 
 class Downscale(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=5):
-        # print("Downscale in_ch is {}".format(in_ch))
-        # print("Downscale out_ch is {}".format(out_ch))
-        # print("Downscale kernal_size is {}".format(kernel_size))
         super(Downscale, self).__init__()
         self.in_ch = in_ch
         self.out_ch = out_ch
@@ -15,10 +12,8 @@ class Downscale(nn.Module):
         self.conv1 = nn.Conv2d(self.in_ch, self.out_ch, kernel_size=kernel_size, stride=2, padding=2)
 
     def forward(self, x):
-        # print("Downscale input shape is {}".format(x.shape))
         x = self.conv1(x)
         x = F.leaky_relu(x, 0.1)
-        # print("Downscale output shape is {}".format(x.shape))
         return x
 
     def get_out_ch(self):
@@ -28,23 +23,39 @@ class Downscale(nn.Module):
 class DownscaleBlock(nn.Module):
 
     def __init__(self, in_ch, ch, n_downscales, kernel_size):
-        # print("DownscaleBlock in_ch is {}".format(in_ch))
-        # print("DownscaleBlock ch is {}".format(ch))
-        # print("Downscale n_downscales is {}".format(n_downscales))
         super(DownscaleBlock, self).__init__()
-        self.downs = []
+        self.downs = nn.ModuleList()
 
-        last_ch = in_ch
+        self.last_ch = in_ch
         for i in range(n_downscales):
             cur_ch = ch * (min(2 ** i, 8))
-            self.downs.append(Downscale(last_ch, cur_ch, kernel_size=kernel_size))
-            last_ch = self.downs[-1].get_out_ch()
+            self.downs.append(Downscale(self.last_ch, cur_ch, kernel_size=kernel_size))
+            self.last_ch = self.downs[-1].get_out_ch()
+
+    def get_out_ch(self):
+        return self.last_ch
 
     def forward(self, inp):
         x = inp
         for down in self.downs:
             x = down(x)
         return x
+
+
+class Encoder(nn.Module):
+    def __init__(self, in_ch, e_ch):
+        super(Encoder, self).__init__()
+        self.down = DownscaleBlock(in_ch, e_ch, n_downscales=4, kernel_size=5)
+        self.flatten = nn.Flatten()
+
+    def get_output_length(self, input_resolution):
+        downscale_block_output_channels = self.down.get_out_ch()
+        output_length = downscale_block_output_channels * (input_resolution / 2**4)**2
+        return int(output_length)
+
+    def forward(self, inp):
+        x = self.down(inp)
+        return self.flatten(x)
 
 
 class Upscale(nn.Module):
@@ -59,6 +70,33 @@ class Upscale(nn.Module):
         return x
 
 
+class Inter(nn.Module):
+    def __init__(self, in_ch, ae_ch, ae_out_ch, resolution):
+        super(Inter, self).__init__()
+        self.in_ch = in_ch
+        self.ae_ch = ae_ch
+        self.ae_out_ch = ae_out_ch
+        self.lowest_dense_res = resolution // 16
+
+        self.dense1 = nn.Linear(self.in_ch, self.ae_ch)
+        self.dense2 = nn.Linear(ae_ch, self.lowest_dense_res * self.lowest_dense_res * self.ae_out_ch)
+        self.upscale1 = Upscale(self.ae_out_ch, self.ae_out_ch)  # does the kernel size need to be included here?
+
+    def forward(self, inp):
+        x = inp
+        x = self.dense1(x)
+        x = self.dense2(x)
+        x = x.view(x.shape[0], self.ae_out_ch, self.lowest_dense_res, self.lowest_dense_res)
+        x = self.upscale1(x)
+        return x
+
+    def get_code_res(self):
+        return self.lowest_dense_res
+
+    def get_out_ch(self):
+        return self.ae_out_ch
+
+
 class ResidualBlock(nn.Module):
     def __init__(self, ch, kernel_size=3):
         super(ResidualBlock, self).__init__()
@@ -71,55 +109,6 @@ class ResidualBlock(nn.Module):
         x = self.conv2(x)
         x = F.leaky_relu(inp + x, 0.2)
         return x
-
-
-class Encoder(nn.Module):
-    def __init__(self, in_ch, e_ch):
-        # print("Encoder in_ch is {}".format(in_ch))
-        # print("Encoder e_ch is {}".format(in_ch))
-        super(Encoder, self).__init__()
-        self.down = DownscaleBlock(in_ch, e_ch, n_downscales=4, kernel_size=5)
-        self.flatten = nn.Flatten()
-
-    def forward(self, inp):
-        x = self.down(inp)
-        print("pre flatten shape is {}".format(x.shape))
-        return self.flatten(x)
-
-
-class Inter(nn.Module):
-    def __init__(self, in_ch, ae_ch, ae_out_ch, resolution):
-        super(Inter, self).__init__()
-        self.in_ch = in_ch
-        self.ae_ch = ae_ch
-        self.ae_out_ch = ae_out_ch
-        self.lowest_dense_res = resolution // 16
-        print("Inter in_ch shape is {}".format(self.in_ch))
-        print("Inter ae_ch shape is {}".format(self.ae_ch))
-        print("Inter ae_ch_out shape is {}".format(self.ae_out_ch))
-
-        self.dense1 = nn.Linear(self.in_ch, self.ae_ch)
-        self.dense2 = nn.Linear(ae_ch, self.lowest_dense_res * self.lowest_dense_res * self.ae_out_ch)
-        self.upscale1 = Upscale(self.ae_out_ch, self.ae_out_ch)  # does the kernel size need to be included here?
-
-    def forward(self, inp):
-        x = inp
-        print("The inter input shape is {}".format(x.shape))
-        x = self.dense1(x)
-        print("The shape after dense1 is {}".format(x.shape))
-        x = self.dense2(x)
-        print("The shape before the view is {}".format(x.shape))
-        x = x.view(x.shape[0], self.ae_out_ch, self.lowest_dense_res, self.lowest_dense_res)
-        # x = nn.reshape_4D(x, self.lowest_dense_res, self.lowest_dense_res, self.ae_out_ch)
-        print("shape before upscale is {}".format(x.shape))
-        x = self.upscale1(x)
-        return x
-
-    def get_code_res(self):
-        return self.lowest_dense_res
-
-    def get_out_ch(self):
-        return self.ae_out_ch
 
 
 class Decoder(nn.Module):
