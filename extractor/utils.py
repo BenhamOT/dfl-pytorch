@@ -14,7 +14,7 @@ except BaseException:
     from torch.hub import _get_torch_home as get_dir
 
 
-def pil_loader(path: str) -> np.ndarray:
+def pil_loader(path: str, normalise=False) -> np.ndarray:
     """
     Load image as RGB numpy array
 
@@ -23,7 +23,10 @@ def pil_loader(path: str) -> np.ndarray:
     """
     with open(path, 'rb') as f:
         img = Image.open(f)
-        return np.asarray(img.convert('RGB'))/255.0
+        img = np.asarray(img.convert('RGB'))  # /255.0
+        if normalise:
+            img = img/255.0
+        return img
 
 
 def mkdir_or_delete_existing_files(path):

@@ -8,7 +8,7 @@ from PIL import Image
 from extractor.utils import pil_loader, mkdir_or_delete_existing_files
 from extractor.s3fd import SFDDetector
 from extractor.fan2d import FaceAlignment
-from extractor.landmarks_processor import get_transform_mat
+from extractor.landmarks_processor import get_transform_mat, transform_points
 
 
 class Data:
@@ -34,7 +34,7 @@ class ExtractFaces:
         self.landmarks_output_path = landmarks_output_path
         self.device_config = device_config
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(self.device)
+        print("Device = {}".format(self.device))
         self.rects_extractor = SFDDetector(device=self.device, path_to_detector="extractor/models/s3fd.pth")
         self.landmarks_extractor = FaceAlignment(landmarks_type=1, device=self.device)
         self.detected_faces = None
@@ -45,11 +45,6 @@ class ExtractFaces:
             data = Data(filepath=image_file_path)
             data = self.process_data(data)
             self.detected_faces += data.faces_detected
-
-    def number_of_detected_faces(self):
-        if self.detected_faces is None:
-            print("need to call run method")
-        return self.detected_faces
 
     def process_data(self, data):
         filepath = data.filepath
@@ -81,22 +76,8 @@ class ExtractFaces:
             # Image is too small
             data.rects = []
         else:
-            for rot in ([0, 90, 270, 180]):
-                if rot == 0:
-                    rotated_image = image
-                elif rot == 90:
-                    rotated_image = image.swapaxes( 0,1 )[:,::-1,:]
-                elif rot == 180:
-                    rotated_image = image[::-1,::-1,:]
-                elif rot == 270:
-                    rotated_image = image.swapaxes( 0,1 )[::-1,:,:]
-                rects = data.rects = rects_extractor.detect_from_image(rotated_image)
-                if len(rects) != 0:
-                    data.rects_rotation = rot
-                    break
-            if max_faces_from_image is not None and \
-               max_faces_from_image > 0 and \
-               len(data.rects) > 0:
+            data.rects = rects_extractor.detect_from_image(image)
+            if max_faces_from_image > 0 and len(data.rects) > 0:
                 data.rects = data.rects[0:max_faces_from_image]
 
         return data
@@ -106,40 +87,7 @@ class ExtractFaces:
         if not data.rects:
             return data
 
-        h, w, ch = image.shape
-
-        if data.rects_rotation == 0:
-            rotated_image = image
-        elif data.rects_rotation == 90:
-            rotated_image = image.swapaxes( 0,1 )[:,::-1,:]
-        elif data.rects_rotation == 180:
-            rotated_image = image[::-1,::-1,:]
-        elif data.rects_rotation == 270:
-            rotated_image = image.swapaxes( 0,1 )[::-1,:,:]
-
-        data.landmarks = landmarks_extractor.get_landmarks_from_image(rotated_image, data.rects)
-        if data.rects_rotation != 0:
-            for i, (rect, lmrks) in enumerate(zip(data.rects, data.landmarks)):
-                new_rect, new_lmrks = rect, lmrks
-                (l,t,r,b, _) = rect
-                if data.rects_rotation == 90:
-                    new_rect = ( t, h-l, b, h-r)
-                    if lmrks is not None:
-                        new_lmrks = lmrks[:,::-1].copy()
-                        new_lmrks[:,1] = h - new_lmrks[:,1]
-                elif data.rects_rotation == 180:
-                    if lmrks is not None:
-                        new_rect = ( w-l, h-t, w-r, h-b)
-                        new_lmrks = lmrks.copy()
-                        new_lmrks[:,0] = w - new_lmrks[:,0]
-                        new_lmrks[:,1] = h - new_lmrks[:,1]
-                elif data.rects_rotation == 270:
-                    new_rect = ( w-b, l, w-t, r )
-                    if lmrks is not None:
-                        new_lmrks = lmrks[:,::-1].copy()
-                        new_lmrks[:,0] = w - new_lmrks[:,0]
-                data.rects[i], data.landmarks[i] = new_rect, new_lmrks
-
+        data.landmarks = landmarks_extractor.get_landmarks_from_image(image, data.rects)
         return data
 
     def final_stage(self, data, image, image_size):
@@ -161,8 +109,9 @@ class ExtractFaces:
             images_output_filepath = self.images_output_path + f"{file_name}_{face_idx}.jpg"
             face_image.save(images_output_filepath)
             # save the landmakrs
+            face_image_landmarks = transform_points(points=image_landmarks, mat=image_to_face_mat)
             landmarks_output_filepath = self.landmarks_output_path + f"{file_name}_{face_idx}.npy"
-            np.save(landmarks_output_filepath, image_landmarks)
+            np.save(landmarks_output_filepath, face_image_landmarks)
 
             data.final_output_files.append(images_output_filepath)
             face_idx += 1
@@ -186,22 +135,19 @@ def extract_faces_from_frames(
     mkdir_or_delete_existing_files(path=images_output_path)
     mkdir_or_delete_existing_files(path=landmarks_output_path)
 
-    images_found = len(input_image_paths)
-    faces_detected = 0
-    if images_found != 0:
-        print('Extracting faces...')
-        ExtractFaces(
-            input_image_paths,
-            image_size,
-            jpeg_quality,
-            max_faces_from_image=max_faces_from_image,
-            images_output_path=images_output_path,
-            landmarks_output_path=landmarks_output_path
-        ).run()
+    print('Extracting faces...')
+    extract_faces = ExtractFaces(
+        input_image_paths,
+        image_size,
+        jpeg_quality,
+        max_faces_from_image=max_faces_from_image,
+        images_output_path=images_output_path,
+        landmarks_output_path=landmarks_output_path
+    )
+    extract_faces.run()
 
-    # faces_detected += sum([d.faces_detected for d in data])
+    print("-------------------------")
+    print("Images found: {}".format(len(input_image_paths)))
+    print("Faces detected: {}".format(extract_faces.detected_faces))
+    print("-------------------------")
 
-    # print('-------------------------')
-    # print('Images found:        %d' % (images_found) )
-    # print('Faces detected:      %d' % (faces_detected) )
-    # print('-------------------------')

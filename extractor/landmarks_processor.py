@@ -3,8 +3,6 @@ import numpy as np
 
 
 def get_transform_mat(image_landmarks, output_size, scale=1.0):
-    if not isinstance(image_landmarks, np.ndarray):
-        image_landmarks = np.array(image_landmarks)
 
     # estimate landmarks transform from global space to local aligned space with bounds [0..1]
     mat = umeyama(np.concatenate([image_landmarks[17:49], image_landmarks[54:55]]), landmarks_2D_new, True)[0:2]
@@ -20,14 +18,8 @@ def get_transform_mat(image_landmarks, output_size, scale=1.0):
     bt_diag_vec /= np.linalg.norm(bt_diag_vec)
 
     # calc modifier of diagonal vectors for scale and padding value
-    padding, remove_align = (0.40, False) # these values correspond to the whole face parameters
+    padding = 0.2109375
     mod = (1.0 / scale) * (np.linalg.norm(g_p[0] - g_p[2]) * (padding * np.sqrt(2.0) + 0.5))
-
-    # adjust vertical offset for WHOLE_FACE, 7% below in order to cover more forehead
-    vec = (g_p[0] - g_p[3]).astype(np.float32)
-    vec_len = np.linalg.norm(vec)
-    vec /= vec_len
-    g_c += vec * vec_len * 0.07
 
     # calc 3 points in global space to estimate 2d affine transform
     l_t = np.array([g_c - tb_diag_vec * mod,

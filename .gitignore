@@ -2,4 +2,6 @@ workspace
 workspace_test
 *.pyc
 .idea
+*.npy
+*.jpg
 

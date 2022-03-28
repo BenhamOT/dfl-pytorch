@@ -32,14 +32,10 @@ class C2CustomImageDataset(Dataset):
     def __len__(self) -> int:
         return len(self.src_dir)
 
-    def get_face_image(self, img: np.ndarray, landmarks: np.ndarray, warp: bool,
-                       warp_affine_flags=cv2.INTER_CUBIC, masked: bool = False):
+    def get_face_image(self, img: np.ndarray, warp: bool, warp_affine_flags=cv2.INTER_CUBIC, masked: bool = False):
 
-        mat = get_transform_mat(image_landmarks=landmarks, output_size=self.resolution)
-        img = cv2.warpAffine(
-            src=img, M=mat, dsize=(self.resolution, self.resolution),
-            borderMode=self.border_mode, flags=warp_affine_flags
-        )
+        img = cv2.resize(img, (self.resolution, self.resolution), interpolation=warp_affine_flags)
+
         img = warp_by_params(
             params=self.params, img=img, random_warp=warp, transform=True,
             can_flip=True, border_mode=self.border_mode, cv2_inter=warp_affine_flags
@@ -59,7 +55,7 @@ class C2CustomImageDataset(Dataset):
         img += clipped_eye_mask * img
 
         img = self.get_face_image(
-            img=img, landmarks=landmarks, warp=False,
+            img=img, warp=False,
             warp_affine_flags=cv2.INTER_LINEAR, masked=True
         )
         return img
@@ -71,19 +67,19 @@ class C2CustomImageDataset(Dataset):
         src_landmarks_file = src_image_file.replace(".jpg", ".npy")
         dst_image_file = self.dst_dir[item]  # need a way to randomly choose a target image from a subnet of target images
         dst_landmarks_file = dst_image_file.replace(".jpg", ".npy")
-        src_image = pil_loader(self.data_src_aligned_dir + src_image_file)
+        src_image = pil_loader(self.data_src_aligned_dir + src_image_file, normalise=True)
         src_landmarks = np.load(self.data_src_landmarks_dir + src_landmarks_file)
-        dst_image = pil_loader(self.data_dst_aligned_dir + dst_image_file)
+        dst_image = pil_loader(self.data_dst_aligned_dir + dst_image_file, normalise=True)
         dst_landmarks = np.load(self.data_dst_landmarks_dir + dst_landmarks_file)
 
         # create the warped, target and target mask for the src image
-        warped_src = self.get_face_image(img=src_image.copy(), landmarks=src_landmarks, warp=self.warp)
-        target_src = self.get_face_image(img=src_image.copy(), landmarks=src_landmarks, warp=False)
+        warped_src = self.get_face_image(img=src_image.copy(), warp=self.warp)
+        target_src = self.get_face_image(img=src_image.copy(), warp=False)
         target_src_mask = self.get_face_mask(img=src_image.copy(), landmarks=src_landmarks)
 
         # create the  warped, target and target mask for the dst image
-        warped_dst = self.get_face_image(img=dst_image.copy(), landmarks=dst_landmarks, warp=self.warp)
-        target_dst = self.get_face_image(img=dst_image.copy(), landmarks=dst_landmarks, warp=False)
+        warped_dst = self.get_face_image(img=dst_image.copy(), warp=self.warp)
+        target_dst = self.get_face_image(img=dst_image.copy(), warp=False)
         target_dst_mask = self.get_face_mask(img=dst_image.copy(), landmarks=dst_landmarks)
 
         result = {

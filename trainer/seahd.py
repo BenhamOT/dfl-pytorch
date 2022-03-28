@@ -1,11 +1,12 @@
-import multiprocessing
-import operator
 import torch
 import torch.optim as optim
+import seaborn as sns
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+
 from trainer.deepfake_architecture import Encoder, Decoder, Inter
 from trainer.data_loader import C2DataLoader
 from trainer.utils import gaussian_blur, dssim
-from PIL import Image
 
 import numpy as np
 
@@ -36,8 +37,7 @@ class SAEHDModel:
 
         input_ch=3
         self.encoder = Encoder(in_ch=input_ch, e_ch=self.e_dims)
-        encoder_out_ch = self.encoder.get_output_length(input_resolution=self.resolution)  # 40960
-        print("encoder output channels: {}".format(encoder_out_ch))
+        encoder_out_ch = self.encoder.get_output_length(input_resolution=self.resolution)
 
         self.inter_AB = Inter(
             in_ch=encoder_out_ch,
@@ -67,14 +67,23 @@ class SAEHDModel:
         for i in range(self.epochs):
             print("epoch {}".format(i))
 
-            gpu_src_losses = []
-            gpu_dst_losses = []
-            gpu_G_loss_gvs = []
+            src_average_losses = []
+            dst_losses = []
+            G_loss_gvs = []
 
+            # TODO add in tqdm here when finsihed debugging
             for sample in C2DataLoader(src_path=src_path, dst_path=dst_path).run():
 
-                src_loss, dst_loss, combbined_loss = self.train(sample=sample)
-                print(src_loss)
+                # TODO need to compare input here to dfl input
+
+                src_loss, dst_loss, combined_loss = self.train(sample=sample)
+                src_average_losses.append(src_loss.mean())
+
+                print("src loss is {}".format(src_loss))
+                print("dst loss is {}".format(dst_loss))
+                print("combined loss is {}".format(combined_loss))
+            # sns.lineplot(x=src_average_losses, y=[i for i in range(len(src_average_losses))])
+            # plt.show()
 
     def train(self, sample):
 
@@ -108,9 +117,7 @@ class SAEHDModel:
         gpu_target_srcm_blur = torch.clip(gpu_target_srcm_blur, 0, 0.5) * 2
 
         gpu_target_dstm_blur = gaussian_blur(gpu_target_dstm,  max(1, self.resolution // 32) )
-        gpu_target_dstm_style_blur = gpu_target_dstm_blur
         gpu_target_dstm_blur = torch.clip(gpu_target_dstm_blur, 0, 0.5) * 2
-        print("gpu_target_dstm_blur shape is {}".format(gpu_target_dstm_blur.shape))
 
         # TODO how does this multiplication take place?
         gpu_target_dst_masked = sample["target_dst"]*gpu_target_dstm_blur
@@ -201,4 +208,4 @@ class SAEHDModel:
         return gpu_src_loss, gpu_dst_loss, gpu_G_loss
 
 
-SAEHDModel().run(src_path="../workspace/data_src/", dst_path="../workspace/data_dst/")
+# SAEHDModel().run(src_path="../workspace/data_src/", dst_path="../workspace/data_dst/")

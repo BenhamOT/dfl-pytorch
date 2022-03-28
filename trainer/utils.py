@@ -40,7 +40,6 @@ def reducer(x, kernel):
 
 def dssim(img1, img2, max_val, filter_size=11, filter_sigma=1.5, k1=0.01, k2=0.03):
     filter_size = max(1, filter_size)
-    print(filter_size)
     kernel = np.arange(0, filter_size, dtype=np.float32)
     kernel -= (filter_size - 1) / 2.0
     kernel = kernel ** 2
@@ -48,7 +47,6 @@ def dssim(img1, img2, max_val, filter_size=11, filter_sigma=1.5, k1=0.01, k2=0.0
     kernel = np.reshape(kernel, (1, -1)) + np.reshape(kernel, (-1, 1))
 
     kernel = torch.from_numpy(np.reshape(kernel, (1, -1)))
-    print(kernel.shape)
     kernel = F.softmax(kernel, dim=0)
     kernel = torch.reshape(kernel, (1, 1, filter_size, filter_size))
     kernel = torch.tile(kernel, (img1.shape[1], 1, 1, 1))
