@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image
 from trainer.data_loader import C2DataLoader
+from PIL import Image
 
 
 def save_tensor_as_image(image_tensor, file_name, mode="RGB"):
@@ -17,10 +17,27 @@ def save_tensor_as_image(image_tensor, file_name, mode="RGB"):
     img = Image.fromarray(image_array, mode=mode)
     img.save(file_name)
 
+
 def display_mask(mask_image):
     plt.imshow(mask_image, cmap='hot', interpolation='nearest')
     plt.show()
 
 
-class TestC2DataLoader:
+def test_data_loader():
     pass
+
+
+for sample in C2DataLoader(src_path="workspace_test/data_src/", dst_path="workspace_test/data_dst/", batch_size=1).run():
+
+    print("target src mask shape is {}".format(sample["target_src_mask"][0].shape))
+    save_tensor_as_image(sample["warped_src"][0], "warped_src.jpg")
+    # save_tensor_as_image(sample["target_src"][0], "target_src.jpg")
+    save_tensor_as_image(sample["warped_dst"][0], "warped_dst.jpg")
+    # save_tensor_as_image(sample["target_dst"][0], "target_dst.jpg")
+
+    np.save("src_mask.npy", sample["target_src_mask"].numpy())
+    np.save("dst_mask.npy", sample["target_dst_mask"].numpy())
+
+    display_mask(sample["target_src_mask"][0][0])
+    display_mask(sample["target_dst_mask"][0][0])
+    break
