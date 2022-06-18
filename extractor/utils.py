@@ -4,6 +4,7 @@ import errno
 import torch
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
 from PIL import Image
 from numba import jit
 from urllib.parse import urlparse
@@ -23,7 +24,7 @@ def pil_loader(path: str, normalise=False) -> np.ndarray:
     """
     with open(path, 'rb') as f:
         img = Image.open(f)
-        img = np.asarray(img.convert('RGB'))  # /255.0
+        img = np.asarray(img.convert("RGB"))
         if normalise:
             img = img/255.0
         return img
@@ -210,32 +211,6 @@ def _get_preds_fromhm(hm, idx, center=None, scale=None):
     return preds, preds_orig
 
 
-def create_bounding_box(target_landmarks, expansion_factor=0.0):
-    """
-    gets a batch of landmarks and calculates a bounding box that includes all the landmarks per set of landmarks in
-    the batch
-
-    Arguments:
-        target_landmarks: batch of landmarks of dim (n x 68 x 2). Where n is the batch size
-        expansion_factor: expands the bounding box by this factor. For example, a `expansion_factor` of 0.2 leads
-            to 20% increase in width and height of the boxes
-    Returns:
-        a batch of bounding boxes of dim (n x 4) where the second dim is (x1,y1,x2,y2)
-    """
-    # Calc bounding box
-    x_y_min, _ = target_landmarks.reshape(-1, 68, 2).min(dim=1)
-    x_y_max, _ = target_landmarks.reshape(-1, 68, 2).max(dim=1)
-    # expanding the bounding box
-    expansion_factor /= 2
-    bb_expansion_x = (x_y_max[:, 0] - x_y_min[:, 0]) * expansion_factor
-    bb_expansion_y = (x_y_max[:, 1] - x_y_min[:, 1]) * expansion_factor
-    x_y_min[:, 0] -= bb_expansion_x
-    x_y_max[:, 0] += bb_expansion_x
-    x_y_min[:, 1] -= bb_expansion_y
-    x_y_max[:, 1] += bb_expansion_y
-    return torch.cat([x_y_min, x_y_max], dim=1)
-
-
 def shuffle_lr(parts, pairs=None):
     """
     Shuffle the points left-right according to the axis of symmetry
@@ -277,6 +252,18 @@ def flip(tensor, is_label=False):
         tensor = tensor.flip(tensor.ndimension() - 1)
 
     return tensor
+
+
+def save_landmarks_on_image(image, landmarks, file_path):
+    for landmark in landmarks:
+
+        x, y = landmark
+        # display landmarks on "image_cropped"
+        # with white colour in BGR and thickness 1
+        cv2.circle(img=image, center=(int(x), int(y)), radius=1, color=(255, 255, 255), thickness=1)
+        plt.axis("off")
+
+    plt.imsave(file_path, image)
 
 
 def load_file_from_url(url, model_dir=None, progress=True, check_hash=False, file_name=None):

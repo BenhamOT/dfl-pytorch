@@ -7,7 +7,6 @@ def extract_frames_from_video(input_file, output_dir, output_ext=None):
     output_path = Path(output_dir)
 
     job = ffmpeg.input(str(input_file_path))
-
     kwargs = {'pix_fmt': 'rgb24'}
 
     if output_ext == 'jpg':
@@ -19,4 +18,3 @@ def extract_frames_from_video(input_file, output_dir, output_ext=None):
         job.run()
     except Exception as e:
         print(e)
-

@@ -35,8 +35,14 @@ class ExtractFaces:
         self.device_config = device_config
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print("Device = {}".format(self.device))
-        self.rects_extractor = SFDDetector(device=self.device, path_to_detector="extractor/models/s3fd.pth")
-        self.landmarks_extractor = FaceAlignment(landmarks_type=1, device=self.device)
+        self.rects_extractor = SFDDetector(
+            device=self.device,
+            path_to_detector="extractor/models/s3fd.pth"
+        )
+        self.landmarks_extractor = FaceAlignment(
+            device=self.device,
+            path_to_detector="extractor/models/face-alignment-net.pt"
+        )
         self.detected_faces = None
 
     def run(self):
@@ -50,7 +56,6 @@ class ExtractFaces:
         filepath = data.filepath
         image = pil_loader(filepath)
 
-        #
         data = self.rects_stage(
             data=data,
             image=image.copy(),

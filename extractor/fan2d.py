@@ -1,28 +1,7 @@
 import warnings
 import torch
 from extractor.s3fd import SFDDetector
-from enum import IntEnum
-from distutils.version import LooseVersion
 from extractor.utils import load_file_from_url, crop, flip, get_preds_fromhm
-
-
-class LandmarksType(IntEnum):
-    """
-    Enum class defining the type of landmarks to detect.
-    ``_2D`` - the detected points ``(x,y)`` are detected in a 2D space and follow the visible contour of the face
-    ``_2halfD`` - this points represent the projection of the 3D points into 3D
-    ``_3D`` - detect the points ``(x,y,z)``` in a 3D space
-    """
-    _2D = 1
-    _2halfD = 2
-    _3D = 3
-
-
-class NetworkSize(IntEnum):
-    # TINY = 1
-    # SMALL = 2
-    # MEDIUM = 3
-    LARGE = 4
 
 
 default_model_urls = {
@@ -45,36 +24,36 @@ models_urls = {
 }
 
 
+def download_landmarks_model(network_size=4):
+    network_size = int(network_size)
+    pytorch_version = torch.__version__
+    if 'dev' in pytorch_version:
+        pytorch_version = pytorch_version.rsplit('.', 2)[0]
+    else:
+        pytorch_version = pytorch_version.rsplit('.', 1)[0]
+
+    # Initialise the face alignemnt networks
+    network_name = '2DFAN-' + str(network_size)
+    face_alignment_net = torch.jit.load(
+        load_file_from_url(models_urls.get(pytorch_version, default_model_urls)[network_name]))
+    return face_alignment_net
+
+
 class FaceAlignment:
-    def __init__(self, landmarks_type, network_size=NetworkSize.LARGE,
-                 device='cuda', flip_input=False, verbose=False):
+    def __init__(self, path_to_detector, device='cuda', flip_input=False, verbose=False):
         self.device = device
         self.flip_input = flip_input
-        self.landmarks_type = landmarks_type
         self.verbose = verbose
         self.face_detector = SFDDetector()
-
-        if LooseVersion(torch.__version__) < LooseVersion('1.5.0'):
-            raise ImportError(f'Unsupported pytorch version detected. Minimum supported version of pytorch: 1.5.0\
-                            Either upgrade (recommended) your pytorch setup, or downgrade to face-alignment 1.2.0')
-
-        network_size = int(network_size)
-        pytorch_version = torch.__version__
-        if 'dev' in pytorch_version:
-            pytorch_version = pytorch_version.rsplit('.', 2)[0]
-        else:
-            pytorch_version = pytorch_version.rsplit('.', 1)[0]
 
         if 'cuda' in device:
             torch.backends.cudnn.benchmark = True
 
         # Initialise the face alignemnt networks
-        if landmarks_type == LandmarksType._2D:
-            network_name = '2DFAN-' + str(network_size)
+        if path_to_detector is None:
+            self.face_alignment_net = download_landmarks_model()
         else:
-            network_name = '3DFAN-' + str(network_size)
-        self.face_alignment_net = torch.jit.load(
-            load_file_from_url(models_urls.get(pytorch_version, default_model_urls)[network_name]))
+            self.face_alignment_net = torch.jit.load(path_to_detector)
 
         self.face_alignment_net.to(device)
         self.face_alignment_net.eval()
