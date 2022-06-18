@@ -4,4 +4,9 @@ workspace_test
 .idea
 *.npy
 *.jpg
+*.ipynb
+dev.py
+dev.ipynb
+
+
 
