@@ -3,7 +3,7 @@ import numpy as np
 
 from extractor.extract_frames import extract_frames_from_video
 from extractor.extract_faces import extract_faces_from_frames
-from extractor.utils import pil_loader, save_landmarks_on_image
+from extractor.utils import pil_loader, save_landmarks_on_image, mkdir_or_delete_existing_files
 
 
 def test_extract_frames():
@@ -30,6 +30,7 @@ def test_extract_frames():
 
 def test_extract_faces():
     input_folder = "workspace_test/extract_faces_test/"
+    output_folder = "workspace_test/extract_faces_validation/"
     images_folder = input_folder + "aligned/"
     landmarks_folder = input_folder + "landmarks/"
 
@@ -46,20 +47,21 @@ def test_extract_faces():
         jpeg_quality=100
     )
 
-    # assert
-    assert len(os.listdir(images_folder)) == number_of_faces
-    assert len(os.listdir(landmarks_folder)) == number_of_landmarks_files
-
     # visual validation
+    mkdir_or_delete_existing_files(output_folder)
+    assert len(os.listdir(output_folder)) == 0
     for image in os.listdir(images_folder):
         img = pil_loader(images_folder + image)
         landmarks = np.load(landmarks_folder + image.rstrip(".jpg") + ".npy")
         save_landmarks_on_image(
             image=img,
             landmarks=landmarks,
-            file_path="workspace_test/extract_faces_validation/" + image
+            file_path=output_folder+ image
         )
 
 
-
+    # assert
+    assert len(os.listdir(output_folder)) == number_of_faces
+    assert len(os.listdir(images_folder)) == number_of_faces
+    assert len(os.listdir(landmarks_folder)) == number_of_landmarks_files
 
