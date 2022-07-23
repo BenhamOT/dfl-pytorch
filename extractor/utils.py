@@ -9,6 +9,7 @@ from PIL import Image
 from numba import jit
 from urllib.parse import urlparse
 from torch.hub import download_url_to_file, HASH_REGEX
+
 try:
     from torch.hub import get_dir
 except BaseException:
@@ -26,7 +27,7 @@ def pil_loader(path: str, normalise=False) -> np.ndarray:
         img = Image.open(f)
         img = np.asarray(img.convert("RGB"))
         if normalise:
-            img = img/255.0
+            img = img / 255.0
         return img
 
 
@@ -102,16 +103,14 @@ def crop(image, center, scale, resolution=256.0):
         newImg = np.zeros(newDim, dtype=np.uint8)
     ht = image.shape[0]
     wd = image.shape[1]
-    newX = np.array(
-        [max(1, -ul[0] + 1), min(br[0], wd) - ul[0]], dtype=np.int32)
-    newY = np.array(
-        [max(1, -ul[1] + 1), min(br[1], ht) - ul[1]], dtype=np.int32)
+
+    newX = np.array([max(1, -ul[0] + 1), min(br[0], wd) - ul[0]], dtype=np.int32)
+    newY = np.array([max(1, -ul[1] + 1), min(br[1], ht) - ul[1]], dtype=np.int32)
     oldX = np.array([max(1, ul[0] + 1), min(br[0], wd)], dtype=np.int32)
     oldY = np.array([max(1, ul[1] + 1), min(br[1], ht)], dtype=np.int32)
-    newImg[newY[0] - 1:newY[1], newX[0] - 1:newX[1]
-           ] = image[oldY[0] - 1:oldY[1], oldX[0] - 1:oldX[1], :]
-    newImg = cv2.resize(newImg, dsize=(int(resolution), int(resolution)),
-                        interpolation=cv2.INTER_LINEAR)
+
+    newImg[newY[0] - 1:newY[1], newX[0] - 1:newX[1]] = image[oldY[0] - 1:oldY[1], oldX[0] - 1:oldX[1], :]
+    newImg = cv2.resize(newImg, dsize=(int(resolution), int(resolution)), interpolation=cv2.INTER_LINEAR)
     return newImg
 
 
@@ -256,7 +255,6 @@ def flip(tensor, is_label=False):
 
 def save_landmarks_on_image(image, landmarks, file_path):
     for landmark in landmarks:
-
         x, y = landmark
         # display landmarks on "image_cropped"
         # with white colour in BGR and thickness 1

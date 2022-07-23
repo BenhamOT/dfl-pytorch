@@ -76,8 +76,8 @@ class ExtractFaces:
 
     @staticmethod
     def rects_stage(data, image, max_faces_from_image, rects_extractor):
-        h,w,c = image.shape
-        if min(h,w) < 128:
+        h, w, c = image.shape
+        if min(h, w) < 128:
             # Image is too small
             data.rects = []
         else:
@@ -106,7 +106,6 @@ class ExtractFaces:
 
         face_idx = 0
         for rect, image_landmarks in zip(rects, landmarks):
-
             image_to_face_mat = get_transform_mat(image_landmarks, image_size)
             face_image = cv2.warpAffine(image, image_to_face_mat, (image_size, image_size), cv2.INTER_LANCZOS4)
             face_image = Image.fromarray(face_image)
@@ -132,8 +131,7 @@ def extract_faces_from_frames(
         max_faces_from_image=None,
         image_size=None,
         jpeg_quality=None,
-        ):
-
+):
     input_image_paths = [os.path.join(input_path, x) for x in os.listdir(input_path) if x.endswith((".jpg", ".png"))]
 
     # delete files from aligned or landmarks dir if it's not empty
@@ -155,4 +153,3 @@ def extract_faces_from_frames(
     print("Images found: {}".format(len(input_image_paths)))
     print("Faces detected: {}".format(extract_faces.detected_faces))
     print("-------------------------")
-

@@ -3,7 +3,6 @@ import numpy as np
 
 
 def get_transform_mat(image_landmarks, output_size, scale=1.0):
-
     # estimate landmarks transform from global space to local aligned space with bounds [0..1]
     mat = umeyama(np.concatenate([image_landmarks[17:49], image_landmarks[54:55]]), landmarks_2D_new, True)[0:2]
 
@@ -34,7 +33,7 @@ def get_transform_mat(image_landmarks, output_size, scale=1.0):
 
 def transform_points(points, mat, invert=False):
     if invert:
-        mat = cv2.invertAffineTransform (mat)
+        mat = cv2.invertAffineTransform(mat)
     points = np.expand_dims(points, axis=1)
     points = cv2.transform(points, mat, points.shape)
     points = np.squeeze(points)
@@ -74,7 +73,7 @@ def umeyama(src, dst, estimate_scale):
     dst_demean = dst - dst_mean
 
     # Eq. (38).
-    A = np.dot(dst_demean.T, src_demean)/num
+    A = np.dot(dst_demean.T, src_demean) / num
 
     # Eq. (39).
     d = np.ones((dim,), dtype=np.double)
@@ -114,7 +113,7 @@ def umeyama(src, dst, estimate_scale):
 def expand_eyebrows(lmrks, eyebrows_expand_mod=1.0):
     if len(lmrks) != 68:
         raise Exception('works only with 68 landmarks')
-    lmrks = np.array( lmrks.copy(), dtype=np.int )
+    lmrks = np.array(lmrks.copy(), dtype=np.int)
 
     # #nose
     ml_pnt = (lmrks[36] + lmrks[0]) // 2
@@ -139,7 +138,7 @@ def expand_eyebrows(lmrks, eyebrows_expand_mod=1.0):
 
 
 def get_image_hull_mask(image_shape, image_landmarks, eyebrows_expand_mod=1.0):
-    hull_mask = np.zeros(image_shape[0:2]+(1,),dtype=np.float32)
+    hull_mask = np.zeros(image_shape[0:2] + (1,), dtype=np.float32)
 
     lmrks = expand_eyebrows(image_landmarks, eyebrows_expand_mod)
 
@@ -155,7 +154,7 @@ def get_image_hull_mask(image_shape, image_landmarks, eyebrows_expand_mod=1.0):
 
     for item in parts:
         merged = np.concatenate(item)
-        cv2.fillConvexPoly(hull_mask, cv2.convexHull(merged), (1,) )
+        cv2.fillConvexPoly(hull_mask, cv2.convexHull(merged), (1,))
 
     return hull_mask
 
@@ -165,54 +164,54 @@ def get_image_eye_mask(image_shape, image_landmarks):
         raise Exception('get_image_eye_mask works only with 68 landmarks')
 
     h, w, c = image_shape
-    hull_mask = np.zeros((h,w,1), dtype=np.float32)
+    hull_mask = np.zeros((h, w, 1), dtype=np.float32)
     image_landmarks = image_landmarks.astype(np.int)
 
     cv2.fillConvexPoly(hull_mask, cv2.convexHull(image_landmarks[36:42]), (1,))
     cv2.fillConvexPoly(hull_mask, cv2.convexHull(image_landmarks[42:48]), (1,))
 
     dilate = h // 32
-    hull_mask = cv2.dilate(hull_mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(dilate,dilate)), iterations = 1 )
+    hull_mask = cv2.dilate(hull_mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilate, dilate)), iterations=1)
 
     blur = h // 16
-    blur = blur + (1-blur % 2)
-    hull_mask = cv2.GaussianBlur(hull_mask, (blur, blur) , 0)
-    hull_mask = hull_mask[...,None]
+    blur = blur + (1 - blur % 2)
+    hull_mask = cv2.GaussianBlur(hull_mask, (blur, blur), 0)
+    hull_mask = hull_mask[..., None]
     return hull_mask
 
 
 landmarks_2D_new = np.array([
-[ 0.000213256,  0.106454  ], #17
-[ 0.0752622,    0.038915  ], #18
-[ 0.18113,      0.0187482 ], #19
-[ 0.29077,      0.0344891 ], #20
-[ 0.393397,     0.0773906 ], #21
-[ 0.586856,     0.0773906 ], #22
-[ 0.689483,     0.0344891 ], #23
-[ 0.799124,     0.0187482 ], #24
-[ 0.904991,     0.038915  ], #25
-[ 0.98004,      0.106454  ], #26
-[ 0.490127,     0.203352  ], #27
-[ 0.490127,     0.307009  ], #28
-[ 0.490127,     0.409805  ], #29
-[ 0.490127,     0.515625  ], #30
-[ 0.36688,      0.587326  ], #31
-[ 0.426036,     0.609345  ], #32
-[ 0.490127,     0.628106  ], #33
-[ 0.554217,     0.609345  ], #34
-[ 0.613373,     0.587326  ], #35
-[ 0.121737,     0.216423  ], #36
-[ 0.187122,     0.178758  ], #37
-[ 0.265825,     0.179852  ], #38
-[ 0.334606,     0.231733  ], #39
-[ 0.260918,     0.245099  ], #40
-[ 0.182743,     0.244077  ], #41
-[ 0.645647,     0.231733  ], #42
-[ 0.714428,     0.179852  ], #43
-[ 0.793132,     0.178758  ], #44
-[ 0.858516,     0.216423  ], #45
-[ 0.79751,      0.244077  ], #46
-[ 0.719335,     0.245099  ], #47
-[ 0.254149,     0.780233  ], #48
-[ 0.726104,     0.780233  ], #54
+    [0.000213256, 0.106454],  # 17
+    [0.0752622, 0.038915],  # 18
+    [0.18113, 0.0187482],  # 19
+    [0.29077, 0.0344891],  # 20
+    [0.393397, 0.0773906],  # 21
+    [0.586856, 0.0773906],  # 22
+    [0.689483, 0.0344891],  # 23
+    [0.799124, 0.0187482],  # 24
+    [0.904991, 0.038915],  # 25
+    [0.98004, 0.106454],  # 26
+    [0.490127, 0.203352],  # 27
+    [0.490127, 0.307009],  # 28
+    [0.490127, 0.409805],  # 29
+    [0.490127, 0.515625],  # 30
+    [0.36688, 0.587326],  # 31
+    [0.426036, 0.609345],  # 32
+    [0.490127, 0.628106],  # 33
+    [0.554217, 0.609345],  # 34
+    [0.613373, 0.587326],  # 35
+    [0.121737, 0.216423],  # 36
+    [0.187122, 0.178758],  # 37
+    [0.265825, 0.179852],  # 38
+    [0.334606, 0.231733],  # 39
+    [0.260918, 0.245099],  # 40
+    [0.182743, 0.244077],  # 41
+    [0.645647, 0.231733],  # 42
+    [0.714428, 0.179852],  # 43
+    [0.793132, 0.178758],  # 44
+    [0.858516, 0.216423],  # 45
+    [0.79751, 0.244077],  # 46
+    [0.719335, 0.245099],  # 47
+    [0.254149, 0.780233],  # 48
+    [0.726104, 0.780233],  # 54
 ], dtype=np.float32)

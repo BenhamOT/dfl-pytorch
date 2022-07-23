@@ -8,8 +8,8 @@ from torch.utils.model_zoo import load_url
 
 # incase the model needs to be downloaded again
 models_urls = {
-        's3fd': 'https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth',
-    }
+    's3fd': 'https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth',
+}
 
 
 class L2Norm(nn.Module):

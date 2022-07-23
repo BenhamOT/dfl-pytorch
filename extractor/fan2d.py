@@ -3,7 +3,6 @@ import torch
 from extractor.s3fd import SFDDetector
 from extractor.utils import load_file_from_url, crop, flip, get_preds_fromhm
 
-
 default_model_urls = {
     '2DFAN-4': 'https://www.adrianbulat.com/downloads/python-fan/2DFAN4-cd938726ad.zip',
     '3DFAN-4': 'https://www.adrianbulat.com/downloads/python-fan/3DFAN4-4a694010b9.zip',
