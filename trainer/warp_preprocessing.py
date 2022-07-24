@@ -16,7 +16,7 @@ def random_normal(size=(1,), trunc_val=2.5):
     return result.reshape(size)
 
 
-def gen_warp_params(w, flip=True, rotation_range=[-10,10], scale_range=[-0.05, 0.05],
+def gen_warp_params(w, flip=True, rotation_range=[-10, 10], scale_range=[-0.05, 0.05],
                     tx_range=[-0.05, 0.05], ty_range=[-0.05, 0.05], rnd_state=None):
     if rnd_state is None:
         rnd_state = np.random
@@ -36,16 +36,16 @@ def gen_warp_params(w, flip=True, rotation_range=[-10,10], scale_range=[-0.05, 0
     mapy = mapx.T
 
     mapx[1:-1, 1:-1] = mapx[1:-1, 1:-1] + random_normal(size=(cell_count - 2, cell_count - 2)) * (
-                cell_size * 0.24)
+            cell_size * 0.24)
     mapy[1:-1, 1:-1] = mapy[1:-1, 1:-1] + random_normal(size=(cell_count - 2, cell_count - 2)) * (
-                cell_size * 0.24)
+            cell_size * 0.24)
 
     half_cell_size = cell_size // 2
 
-    mapx = cv2.resize(mapx, (w + cell_size,) * 2)[half_cell_size:-half_cell_size,
-           half_cell_size:-half_cell_size].astype(np.float32)
-    mapy = cv2.resize(mapy, (w + cell_size,) * 2)[half_cell_size:-half_cell_size,
-           half_cell_size:-half_cell_size].astype(np.float32)
+    mapx = cv2.resize(mapx, (w + cell_size,) * 2)
+    mapx = mapx[half_cell_size:-half_cell_size, half_cell_size:-half_cell_size].astype(np.float32)
+    mapy = cv2.resize(mapy, (w + cell_size,) * 2)
+    mapy = mapy[half_cell_size:-half_cell_size, half_cell_size:-half_cell_size].astype(np.float32)
 
     # random transform
     random_transform_mat = cv2.getRotationMatrix2D((w // 2, w // 2), rotation, scale)

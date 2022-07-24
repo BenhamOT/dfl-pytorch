@@ -8,10 +8,9 @@ from extractor.landmarks_processor import get_transform_mat, get_image_hull_mask
 from trainer.warp_preprocessing import warp_by_params, gen_warp_params
 
 
-class C2CustomImageDataset(Dataset):
+class CustomImageDataset(Dataset):
     def __init__(self, src_path: str, dst_path: str, settings: dict = None,
-                 aligned_dir_name: str= "aligned/", landmarks_dir_name: str= "landmarks/"):
-
+                 aligned_dir_name: str = "aligned/", landmarks_dir_name: str = "landmarks/"):
         # TODO need to read in settings
         # define src and dst image and landmark directories
         self.data_src_aligned_dir = src_path + aligned_dir_name
@@ -33,9 +32,7 @@ class C2CustomImageDataset(Dataset):
         return len(self.src_dir)
 
     def get_face_image(self, img: np.ndarray, warp: bool, warp_affine_flags=cv2.INTER_CUBIC, masked: bool = False):
-
         img = cv2.resize(img, (self.resolution, self.resolution), interpolation=warp_affine_flags)
-
         img = warp_by_params(
             params=self.params, img=img, random_warp=warp, transform=True,
             can_flip=True, border_mode=self.border_mode, cv2_inter=warp_affine_flags
@@ -64,8 +61,8 @@ class C2CustomImageDataset(Dataset):
         # TODO find a nicer way of reading in the landmark files (instead of .replace(.jpg, .npy))
         self.params = gen_warp_params(w=self.resolution)
         src_image_file = self.src_dir[item]
-        src_landmarks_file = src_image_file.replace(".jpg", ".npy")
-        dst_image_file = self.dst_dir[item]  # need a way to randomly choose a target image from a subnet of target images
+        src_landmarks_file = src_image_file.rstrip(".jpg") + ".npy"
+        dst_image_file = self.dst_dir[item]  # need to randomly choose a target image from a subnet of target images
         dst_landmarks_file = dst_image_file.replace(".jpg", ".npy")
         src_image = pil_loader(self.data_src_aligned_dir + src_image_file, normalise=True)
         src_landmarks = np.load(self.data_src_landmarks_dir + src_landmarks_file)
@@ -89,7 +86,7 @@ class C2CustomImageDataset(Dataset):
         return result
 
 
-class C2DataLoader:
+class CustomDataLoader:
     def __init__(self, src_path: str = None, dst_path: str = None, batch_size: int = 4):
         self.src_path = src_path
         self.dst_path = dst_path
@@ -97,7 +94,7 @@ class C2DataLoader:
 
     def run(self, **kwargs):
         print("loading image folder")
-        data = C2CustomImageDataset(src_path=self.src_path, dst_path=self.dst_path, **kwargs)
+        data = CustomImageDataset(src_path=self.src_path, dst_path=self.dst_path, **kwargs)
         print("creating image loader")
         data = DataLoader(data, self.batch_size, shuffle=False)
         return data

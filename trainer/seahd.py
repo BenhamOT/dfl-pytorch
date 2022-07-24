@@ -1,14 +1,10 @@
 import torch
 import torch.optim as optim
-import seaborn as sns
-import matplotlib.pyplot as plt
-from tqdm import tqdm
+import torchshow as ts
 
 from trainer.deepfake_architecture import Encoder, Decoder, Inter
-from trainer.data_loader import C2DataLoader
+from trainer.data_loader import CustomDataLoader
 from trainer.utils import gaussian_blur, dssim
-
-import numpy as np
 
 
 class SAEHDModel:
@@ -20,9 +16,9 @@ class SAEHDModel:
         self.ae_dims = 128  # settings["ae_dims"]
         self.d_dims = 48  # settings["d_dims"]
         self.d_mask_dims = 16  # settings["d_mask_dims"]
-        self.masked_training = True # settings["masked_training"]
+        self.masked_training = True  # settings["masked_training"]
         # self.learn_mask = settings["learn_mask"]
-        self.eyes_priority =  False  # settings["eyes_priority"]
+        self.eyes_priority = False  # settings["eyes_priority"]
         # self.lr_dropout = settings["lr_dropout"]
         # self.random_warp = settings["random_warp"] # want to be false for pretraining
         # self.target_iterations = settings["number_of_iterations"]
@@ -35,20 +31,20 @@ class SAEHDModel:
         self.is_training = True
         self.epochs = 1
 
-        input_ch=3
+        input_ch = 3
         self.encoder = Encoder(in_ch=input_ch, e_ch=self.e_dims)
         encoder_out_ch = self.encoder.get_output_length(input_resolution=self.resolution)
 
         self.inter_AB = Inter(
             in_ch=encoder_out_ch,
             ae_ch=self.ae_dims,
-            ae_out_ch=self.ae_dims*2,
+            ae_out_ch=self.ae_dims * 2,
             resolution=self.resolution
         )
         self.inter_B = Inter(
             in_ch=encoder_out_ch,
             ae_ch=self.ae_dims,
-            ae_out_ch=self.ae_dims*2,
+            ae_out_ch=self.ae_dims * 2,
             resolution=self.resolution
         )
 
@@ -72,8 +68,7 @@ class SAEHDModel:
             G_loss_gvs = []
 
             # TODO add in tqdm here when finsihed debugging
-            for sample in C2DataLoader(src_path=src_path, dst_path=dst_path).run():
-
+            for sample in CustomDataLoader(src_path=src_path, dst_path=dst_path).run():
                 # TODO need to compare input here to dfl input
 
                 src_loss, dst_loss, combined_loss = self.train(sample=sample)
@@ -104,98 +99,103 @@ class SAEHDModel:
 
         # TODO find a way to visualise the gpu_pred_src_src
         gpu_pred_src_src, gpu_pred_src_srcm = self.decoder(gpu_src_code)
+        ts.show(gpu_pred_src_src)
         gpu_pred_dst_dst, gpu_pred_dst_dstm = self.decoder(gpu_dst_code)
         gpu_pred_src_dst, gpu_pred_src_dstm = self.decoder(gpu_src_dst_code)
 
         # unpack masks from one combined mask
         gpu_target_srcm = torch.clip(sample["target_src_mask"], 0, 1)
         gpu_target_dstm = torch.clip(sample["target_dst_mask"], 0, 1)
-        gpu_target_srcm_eyes = torch.clip(sample["target_src_mask"]-1, 0, 1)
-        gpu_target_dstm_eyes = torch.clip(sample["target_dst_mask"]-1, 0, 1)
+        gpu_target_srcm_eyes = torch.clip(sample["target_src_mask"] - 1, 0, 1)
+        gpu_target_dstm_eyes = torch.clip(sample["target_dst_mask"] - 1, 0, 1)
 
-        gpu_target_srcm_blur = gaussian_blur(gpu_target_srcm,  max(1, self.resolution // 32) )
+        gpu_target_srcm_blur = gaussian_blur(gpu_target_srcm, max(1, self.resolution // 32))
         gpu_target_srcm_blur = torch.clip(gpu_target_srcm_blur, 0, 0.5) * 2
 
-        gpu_target_dstm_blur = gaussian_blur(gpu_target_dstm,  max(1, self.resolution // 32) )
+        gpu_target_dstm_blur = gaussian_blur(gpu_target_dstm, max(1, self.resolution // 32))
         gpu_target_dstm_blur = torch.clip(gpu_target_dstm_blur, 0, 0.5) * 2
 
         # TODO how does this multiplication take place?
-        gpu_target_dst_masked = sample["target_dst"]*gpu_target_dstm_blur
-        gpu_target_src_masked = sample["target_src"]*gpu_target_srcm_blur
+        gpu_target_dst_masked = sample["target_dst"] * gpu_target_dstm_blur
+        gpu_target_src_masked = sample["target_src"] * gpu_target_srcm_blur
 
         gpu_target_src_masked_opt = gpu_target_src_masked if self.masked_training else sample["target_src"]
         gpu_target_dst_masked_opt = gpu_target_dst_masked if self.masked_training else sample["target_dst"]
 
-        gpu_pred_src_src_masked_opt = gpu_pred_src_src*gpu_target_srcm_blur if self.masked_training else gpu_pred_src_src
-        gpu_pred_dst_dst_masked_opt = gpu_pred_dst_dst*gpu_target_dstm_blur if self.masked_training else gpu_pred_dst_dst
+        gpu_pred_src_src_masked_opt = gpu_pred_src_src * gpu_target_srcm_blur if self.masked_training else gpu_pred_src_src
+        gpu_pred_dst_dst_masked_opt = gpu_pred_dst_dst * gpu_target_dstm_blur if self.masked_training else gpu_pred_dst_dst
 
         if self.resolution < 256:
-            dssim_src_result = 10*dssim(
+            dssim_src_result = 10 * dssim(
                 img1=gpu_target_src_masked_opt,
                 img2=gpu_pred_src_src_masked_opt,
                 max_val=1.0,
-                filter_size=int(self.resolution/11.6)
+                filter_size=int(self.resolution / 11.6)
             )
             gpu_src_loss = torch.mean(dssim_src_result, dim=1)
         else:
-            dssim_src_result = 5*dssim(
+            dssim_src_result = 5 * dssim(
                 img1=gpu_target_src_masked_opt,
                 img2=gpu_pred_src_src_masked_opt,
                 max_val=1.0,
-                filter_size=int(self.resolution/11.6)
+                filter_size=int(self.resolution / 11.6)
             )
             gpu_src_loss = torch.mean(dssim_src_result, dim=1)
-            dssim_src_result = 5*dssim(
+            dssim_src_result = 5 * dssim(
                 img1=gpu_target_src_masked_opt,
                 img2=gpu_pred_src_src_masked_opt,
                 max_val=1.0,
-                filter_size=int(self.resolution/23.2)
+                filter_size=int(self.resolution / 23.2)
             )
             gpu_src_loss += torch.mean(dssim_src_result, dim=1)
 
-        gpu_src_loss += torch.mean(10*torch.square(gpu_target_src_masked_opt - gpu_pred_src_src_masked_opt), dim=(1,2,3))
+        gpu_src_loss += torch.mean(10 * torch.square(gpu_target_src_masked_opt - gpu_pred_src_src_masked_opt),
+                                   dim=(1, 2, 3))
 
         if self.eyes_priority:
             gpu_src_loss += torch.mean(
-                input=300*torch.abs(sample["target_src"]*gpu_target_srcm_eyes - gpu_pred_src_src*gpu_target_srcm_eyes),
-                dim=(1,2,3)
+                input=300 * torch.abs(
+                    sample["target_src"] * gpu_target_srcm_eyes - gpu_pred_src_src * gpu_target_srcm_eyes),
+                dim=(1, 2, 3)
             )
 
-        gpu_src_loss += torch.mean(10*torch.square(gpu_target_srcm - gpu_pred_src_srcm), dim=(1,2,3))
+        gpu_src_loss += torch.mean(10 * torch.square(gpu_target_srcm - gpu_pred_src_srcm), dim=(1, 2, 3))
 
         if self.resolution < 256:
-            dssim_dst_result = 10*dssim(
+            dssim_dst_result = 10 * dssim(
                 img1=gpu_target_dst_masked_opt,
                 img2=gpu_pred_dst_dst_masked_opt,
                 max_val=1.0,
-                filter_size=int(self.resolution/11.6)
+                filter_size=int(self.resolution / 11.6)
             )
             gpu_dst_loss = torch.mean(dssim_dst_result, dim=1)
         else:
-            dssim_dst_result = 5*dssim(
+            dssim_dst_result = 5 * dssim(
                 img1=gpu_target_dst_masked_opt,
                 img2=gpu_pred_dst_dst_masked_opt,
                 max_val=1.0,
-                filter_size=int(self.resolution/11.6)
+                filter_size=int(self.resolution / 11.6)
             )
             gpu_dst_loss = torch.mean(dssim_dst_result, dim=1)
-            dssim_dst_result = 5*dssim(
+            dssim_dst_result = 5 * dssim(
                 img1=gpu_target_dst_masked_opt,
                 img2=gpu_pred_dst_dst_masked_opt,
                 max_val=1.0,
-                filter_size=int(self.resolution/23.2)
+                filter_size=int(self.resolution / 23.2)
             )
             gpu_dst_loss += torch.mean(dssim_dst_result, dim=1)
 
-        gpu_dst_loss += torch.mean(10*torch.square(gpu_target_dst_masked_opt- gpu_pred_dst_dst_masked_opt ), dim=(1,2,3))
+        gpu_dst_loss += torch.mean(10 * torch.square(gpu_target_dst_masked_opt - gpu_pred_dst_dst_masked_opt),
+                                   dim=(1, 2, 3))
 
         if self.eyes_priority:
             gpu_dst_loss += torch.mean(
-                input=300*torch.abs(sample["target_dst"]*gpu_target_dstm_eyes - gpu_pred_dst_dst*gpu_target_dstm_eyes),
-                dim=(1,2,3)
+                input=300 * torch.abs(
+                    sample["target_dst"] * gpu_target_dstm_eyes - gpu_pred_dst_dst * gpu_target_dstm_eyes),
+                dim=(1, 2, 3)
             )
 
-        gpu_dst_loss += torch.mean(10*torch.square(gpu_target_dstm - gpu_pred_dst_dstm ), dim=(1,2,3))
+        gpu_dst_loss += torch.mean(10 * torch.square(gpu_target_dstm - gpu_pred_dst_dstm), dim=(1, 2, 3))
 
         gpu_G_loss = gpu_src_loss + gpu_dst_loss
         gpu_G_loss.mean().backward()
@@ -208,4 +208,6 @@ class SAEHDModel:
         return gpu_src_loss, gpu_dst_loss, gpu_G_loss
 
 
-# SAEHDModel().run(src_path="../workspace/data_src/", dst_path="../workspace/data_dst/")
+SAEHDModel().run(src_path="../workspace/data_src/", dst_path="../workspace/data_dst/")
+
+#%%

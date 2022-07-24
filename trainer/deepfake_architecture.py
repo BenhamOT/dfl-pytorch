@@ -50,7 +50,7 @@ class Encoder(nn.Module):
 
     def get_output_length(self, input_resolution):
         downscale_block_output_channels = self.down.get_out_ch()
-        output_length = downscale_block_output_channels * (input_resolution / 2**4)**2
+        output_length = downscale_block_output_channels * (input_resolution / 2 ** 4) ** 2
         return int(output_length)
 
     def forward(self, inp):
@@ -143,5 +143,3 @@ class Decoder(nn.Module):
         m = self.upscalem2(m)
         m = torch.sigmoid(self.out_convm(m))
         return x, m
-
-

@@ -65,5 +65,4 @@ def dssim(img1, img2, max_val, filter_size=11, filter_sigma=1.5, k1=0.01, k2=0.0
     cs = (num1 - num0 + c2) / (den1 - den0 + c2)
     ssim_val = torch.mean(luminance * cs, dim=(2, 3))
     dssim = (1.0 - ssim_val) / 2.0
-
     return dssim
