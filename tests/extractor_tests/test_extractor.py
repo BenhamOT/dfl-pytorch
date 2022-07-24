@@ -59,7 +59,6 @@ def test_extract_faces():
             file_path=output_folder+ image
         )
 
-
     # assert
     assert len(os.listdir(output_folder)) == number_of_faces
     assert len(os.listdir(images_folder)) == number_of_faces
