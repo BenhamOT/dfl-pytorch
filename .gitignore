@@ -1,12 +1,13 @@
 workspace
 workspace_test
+workspace_temp
 *.pyc
 .idea
 *.npy
 *.jpg
 *.ipynb
-dev.py
-dev.ipynb
+extractor_dev.ipynb
+training_dev.ipynb
 
 
 
