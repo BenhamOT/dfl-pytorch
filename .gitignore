@@ -8,6 +8,9 @@ workspace_temp
 *.ipynb
 extractor_dev.ipynb
 training_dev.ipynb
+MNIST
+predictions
+
 
 
 
