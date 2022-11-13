@@ -10,9 +10,11 @@ class Downscale(nn.Module):
         self.out_ch = out_ch
         self.kernel_size = kernel_size
         self.conv1 = nn.Conv2d(self.in_ch, self.out_ch, kernel_size=kernel_size, stride=2, padding=2)
+        self.batch_norm = nn.BatchNorm2d(self.out_ch)
 
     def forward(self, x):
         x = self.conv1(x)
+        x = self.batch_norm(x)
         x = F.leaky_relu(x, 0.1)
         return x
 
@@ -61,22 +63,23 @@ class Encoder(nn.Module):
 class Upscale(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=3):
         super(Upscale, self).__init__()
-        self.conv1 = nn.Conv2d(in_ch, out_ch * 4, kernel_size=kernel_size, padding="same")
+        self.deconv = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=kernel_size, stride=2, padding=1, output_padding=1)
+        self.batch_norm = nn.BatchNorm2d(out_ch)
 
     def forward(self, x):
-        x = self.conv1(x)
+        x = self.deconv(x)
+        x = self.batch_norm(x)
         x = F.leaky_relu(x, 0.1)
-        x = F.pixel_shuffle(x, 2)
         return x
 
 
 class Inter(nn.Module):
-    def __init__(self, in_ch, ae_ch, ae_out_ch, resolution):
+    def __init__(self, in_ch, ae_ch, ae_out_ch, lowest_dense_res):
         super(Inter, self).__init__()
         self.in_ch = in_ch
         self.ae_ch = ae_ch
         self.ae_out_ch = ae_out_ch
-        self.lowest_dense_res = resolution // 16
+        self.lowest_dense_res = lowest_dense_res
 
         self.dense1 = nn.Linear(self.in_ch, self.ae_ch)
         self.dense2 = nn.Linear(ae_ch, self.lowest_dense_res * self.lowest_dense_res * self.ae_out_ch)
@@ -112,7 +115,7 @@ class ResidualBlock(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, in_ch, d_ch, d_mask_ch):
+    def __init__(self, in_ch, d_ch, d_mask_ch, image_output_channels=3):
         super(Decoder, self).__init__()
         self.upscale0 = Upscale(in_ch, d_ch * 8, kernel_size=3)
         self.upscale1 = Upscale(d_ch * 8, d_ch * 4, kernel_size=3)
@@ -121,7 +124,7 @@ class Decoder(nn.Module):
         self.res0 = ResidualBlock(d_ch * 8, kernel_size=3)
         self.res1 = ResidualBlock(d_ch * 4, kernel_size=3)
         self.res2 = ResidualBlock(d_ch * 2, kernel_size=3)
-        self.out_conv = nn.Conv2d(d_ch * 2, 3, kernel_size=1, padding="same")
+        self.out_conv = nn.Conv2d(d_ch * 2, image_output_channels, kernel_size=1, padding="same")
 
         self.upscalem0 = Upscale(in_ch, d_mask_ch * 8, kernel_size=3)
         self.upscalem1 = Upscale(d_mask_ch * 8, d_mask_ch * 4, kernel_size=3)
