@@ -1,3 +1,5 @@
+import cv2
+
 
 class Params:
     # file path settings
@@ -18,6 +20,11 @@ class Params:
     image_size = 512,
     jpeg_quality = 100
 
+    # data loader settings
+    border_mode = cv2.BORDER_REPLICATE
+    warp = False
+    batch_size = 4
+
     # training settings
     resolution = 128
     e_dims = 80
@@ -37,5 +44,5 @@ class Params:
     # ct_mode =
     # clip_gradients =
     is_training = True
-    epochs = 10
+    epochs = 100
     image_input_channels = 3
