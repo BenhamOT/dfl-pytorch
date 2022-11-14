@@ -2,6 +2,7 @@ from params import Params
 from extractor.extract_frames import extract_frames_from_video
 from extractor.extract_faces import extract_faces_from_frames
 from trainer.seahd import SAEHDModel
+from trainer.simple_autoencoder import Autoencoder
 
 
 # Press the green button in the gutter to run the script.
@@ -27,6 +28,7 @@ if __name__ == '__main__':
     #     jpeg_quality=Params.jpeg_quality
     # )
 
-    saehd = SAEHDModel()
-    saehd.run(src_path=Params.data_src_dir, dst_path=Params.data_dst_dir)
-
+    # saehd = SAEHDModel()
+    # saehd.run(src_path=Params.data_src_dir, dst_path=Params.data_dst_dir)
+    autoencoder = Autoencoder()
+    autoencoder.run(src_path=Params.data_src_dir, dst_path=Params.data_dst_dir)
