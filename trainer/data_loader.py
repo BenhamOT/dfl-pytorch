@@ -6,27 +6,26 @@ from torch.utils.data import DataLoader, Dataset
 from extractor.utils import pil_loader
 from extractor.landmarks_processor import get_transform_mat, get_image_hull_mask, get_image_eye_mask
 from trainer.warp_preprocessing import warp_by_params, gen_warp_params
+from params import Params
 
 
 class CustomImageDataset(Dataset):
-    def __init__(self, src_path: str, dst_path: str, settings: dict = None,
-                 aligned_dir_name: str = "aligned/", landmarks_dir_name: str = "landmarks/"):
-        # TODO need to read in settings
+    def __init__(self):
         # define src and dst image and landmark directories
-        self.data_src_aligned_dir = src_path + aligned_dir_name
-        self.data_dst_aligned_dir = dst_path + aligned_dir_name
-        self.data_src_landmarks_dir = src_path + landmarks_dir_name
-        self.data_dst_landmarks_dir = dst_path + landmarks_dir_name
+        self.data_src_aligned_dir = Params.data_src_aligned_dir
+        self.data_dst_aligned_dir = Params.data_dst_aligned_dir
+        self.data_src_landmarks_dir = Params.data_src_landmarks_dir
+        self.data_dst_landmarks_dir = Params.data_dst_landmarks_dir
 
         # get a list of the src and dst image files
         self.src_dir = os.listdir(self.data_src_aligned_dir)
         self.dst_dir = os.listdir(self.data_dst_aligned_dir)
 
         # define the settings
-        self.resolution = 128
-        self.border_mode = cv2.BORDER_REPLICATE
+        self.resolution = Params.resolution
+        self.border_mode = Params.border_mode
+        self.warp = Params.warp
         self.params = None
-        self.warp = False
 
     def __len__(self) -> int:
         return len(self.src_dir)
@@ -58,10 +57,9 @@ class CustomImageDataset(Dataset):
         return img
 
     def __getitem__(self, item: int):
-        # TODO find a nicer way of reading in the landmark files (instead of .replace(.jpg, .npy))
         self.params = gen_warp_params(w=self.resolution)
         src_image_file = self.src_dir[item]
-        src_landmarks_file = src_image_file.rstrip(".jpg") + ".npy"
+        src_landmarks_file = src_image_file.replace(".jpg", ".npy")
         dst_image_file = self.dst_dir[item]  # need to randomly choose a target image from a subnet of target images
         dst_landmarks_file = dst_image_file.replace(".jpg", ".npy")
         src_image = pil_loader(self.data_src_aligned_dir + src_image_file, normalise=True)
@@ -87,14 +85,12 @@ class CustomImageDataset(Dataset):
 
 
 class CustomDataLoader:
-    def __init__(self, src_path: str = None, dst_path: str = None, batch_size: int = 4):
-        self.src_path = src_path
-        self.dst_path = dst_path
+    def __init__(self, batch_size: int = Params.batch_size):
         self.batch_size = batch_size
 
     def run(self, **kwargs):
         print("loading image folder")
-        data = CustomImageDataset(src_path=self.src_path, dst_path=self.dst_path, **kwargs)
+        data = CustomImageDataset()
         print("creating image loader")
         data = DataLoader(data, self.batch_size, shuffle=False)
         return data
