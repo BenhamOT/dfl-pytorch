@@ -52,10 +52,6 @@ class SAEHDModel:
         inters_out_ch = inter_AB_out_ch + inter_B_out_ch
         self.decoder = Decoder(in_ch=inters_out_ch, d_ch=self.d_dims, d_mask_ch=self.d_mask_dims)
 
-        # self.encoder_optimiser = optim.RMSprop(self.encoder.parameters())
-        # self.inter_B_optimiser = optim.RMSprop(self.inter_B.parameters())
-        # self.inter_AB_optimiser = optim.RMSprop(self.inter_AB.parameters())
-        # self.decoder_optimiser = optim.RMSprop(self.decoder.parameters())
         self.encoder_optimiser = optim.Adam(self.encoder.parameters())
         self.inter_B_optimiser = optim.Adam(self.inter_B.parameters())
         self.inter_AB_optimiser = optim.Adam(self.inter_AB.parameters())
