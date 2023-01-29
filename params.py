@@ -5,7 +5,7 @@ class Params:
     # file path settings
     src_video_name = "JMT.mp4"
     dst_video_name = "MO2.mp4"
-    workspace_dir= "workspace"
+    workspace_dir = "workspace"
     data_src_dir = workspace_dir + "/data_src/"
     data_dst_dir = workspace_dir + "/data_dst/"
     src_video_file_path = data_src_dir + src_video_name
@@ -16,9 +16,10 @@ class Params:
     data_dst_landmarks_dir = data_dst_dir + "landmarks/"
 
     # extraction settings
-    max_faces_from_image = 1,
-    image_size = 512,
+    max_faces_from_image = (1,)
+    image_size = (512,)
     jpeg_quality = 100
+    image_extension = "jpg"
 
     # data loader settings
     border_mode = cv2.BORDER_REPLICATE
@@ -46,3 +47,11 @@ class Params:
     is_training = True
     epochs = 100
     image_input_channels = 3
+
+    # data loader setting
+    warped_src = "warped_src"
+    target_src = "target_src"
+    target_src_mask = "target_src_mask"
+    warped_dst = "warped_dst"
+    target_dst = "target_dst"
+    target_dst_mask = "target_dst_mask"

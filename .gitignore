@@ -10,7 +10,5 @@ extractor_dev.ipynb
 training_dev.ipynb
 MNIST
 predictions
-
-
-
-
+dev.py
+trainer/mnist_autoencoder.py

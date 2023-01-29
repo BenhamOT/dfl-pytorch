@@ -2,19 +2,3 @@ on:
   push:
     branches:
       - main
-
-jobs:
-  build-and-deploy:
-    name: Run unit tests for dfl-pytorch
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v2
-
-      # - name: Setup Python
-      #   uses: actions/setup-python@v2
-      #   with:
-      #     python-version: "3.9"
-      # - name: Run unit tests
-      #   run: python -m pytest
-      # - name: Zip up code in src folder for lambda deployment

@@ -1,12 +1,12 @@
 from params import Params
 from extractor.extract_frames import extract_frames_from_video
 from extractor.extract_faces import extract_faces_from_frames
-from trainer.seahd import SAEHDModel
-from trainer.simple_autoencoder import Autoencoder
+from trainer.seahd_model import SAEHDModel
+from trainer.simple_autoencoder_model import Autoencoder
 
 
 # Press the green button in the gutter to run the script.
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # extract_frames_from_video(Params.src_video_file_path, Params.data_src_dir, "jpg")
     # extract_frames_from_video(Params.dst_video_file_path, Params.data_dst_dir, "jpg")
