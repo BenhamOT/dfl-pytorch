@@ -2,6 +2,7 @@ import os
 import numpy as np
 import unittest
 
+from params import Params
 from extractor.extract_frames import extract_frames_from_video
 from extractor.extract_faces import extract_faces_from_frames
 from extractor.utils import (
@@ -15,7 +16,7 @@ class TestExtractFrames(unittest.TestCase):
     def setUp(self) -> None:
         self.input_folder = "workspace_test/extract_frames_test/"
         for image in os.listdir(self.input_folder):
-            if image.endswith(".jpg"):
+            if image.endswith(Params.image_extension):
                 os.remove(self.input_folder + image)
 
     def test_extract_frames_from_video(self) -> None:
@@ -23,12 +24,12 @@ class TestExtractFrames(unittest.TestCase):
         extract_frames_from_video(
             input_file=self.input_folder + "JMT.mp4",
             output_dir=self.input_folder,
-            output_ext="jpg",
+            output_ext=Params.image_extension,
         )
         input_image_paths = [
             os.path.join(self.input_folder, x)
             for x in os.listdir(self.input_folder)
-            if x.endswith(".jpg")
+            if x.endswith(Params.image_extension)
         ]
         assert len(input_image_paths) == expected_number_of_frames
 
@@ -57,7 +58,9 @@ class TestExtractFace(unittest.TestCase):
         assert len(os.listdir(self.output_folder)) == 0
         for image in os.listdir(self.images_folder):
             img = pil_loader(self.images_folder + image)
-            landmarks = np.load(self.landmarks_folder + image.replace(".jpg", ".npy"))
+            landmarks = np.load(
+                self.landmarks_folder + image.replace(Params.image_extension, ".npy")
+            )
             save_landmarks_on_image(
                 image=img, landmarks=landmarks, file_path=self.output_folder + image
             )

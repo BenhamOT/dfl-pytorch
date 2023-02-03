@@ -111,9 +111,9 @@ class CustomImageDataset(Dataset):
     def __getitem__(self, item: int) -> Dict:
         self.params = gen_warp_params(w=self.resolution)
         src_image_file = self.src_dir[item]
-        src_landmarks_file = src_image_file.replace(".jpg", ".npy")
+        src_landmarks_file = src_image_file.replace(Params.image_extension, ".npy")
         dst_image_file = self.get_destination_image_path(item)
-        dst_landmarks_file = dst_image_file.replace(".jpg", ".npy")
+        dst_landmarks_file = dst_image_file.replace(Params.image_extension, ".npy")
         src_image = pil_loader(
             self.data_src_aligned_dir + src_image_file, normalise=True
         )

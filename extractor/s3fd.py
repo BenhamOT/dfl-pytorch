@@ -8,7 +8,7 @@ from torch.utils.model_zoo import load_url
 
 # incase the model needs to be downloaded again
 models_urls = {
-    's3fd': 'https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth',
+    "s3fd": "https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth",
 }
 
 
@@ -60,12 +60,24 @@ class S3FD(nn.Module):
         self.conv4_3_norm = L2Norm(512, scale=8)
         self.conv5_3_norm = L2Norm(512, scale=5)
 
-        self.conv3_3_norm_mbox_conf = nn.Conv2d(256, 4, kernel_size=3, stride=1, padding=1)
-        self.conv3_3_norm_mbox_loc = nn.Conv2d(256, 4, kernel_size=3, stride=1, padding=1)
-        self.conv4_3_norm_mbox_conf = nn.Conv2d(512, 2, kernel_size=3, stride=1, padding=1)
-        self.conv4_3_norm_mbox_loc = nn.Conv2d(512, 4, kernel_size=3, stride=1, padding=1)
-        self.conv5_3_norm_mbox_conf = nn.Conv2d(512, 2, kernel_size=3, stride=1, padding=1)
-        self.conv5_3_norm_mbox_loc = nn.Conv2d(512, 4, kernel_size=3, stride=1, padding=1)
+        self.conv3_3_norm_mbox_conf = nn.Conv2d(
+            256, 4, kernel_size=3, stride=1, padding=1
+        )
+        self.conv3_3_norm_mbox_loc = nn.Conv2d(
+            256, 4, kernel_size=3, stride=1, padding=1
+        )
+        self.conv4_3_norm_mbox_conf = nn.Conv2d(
+            512, 2, kernel_size=3, stride=1, padding=1
+        )
+        self.conv4_3_norm_mbox_loc = nn.Conv2d(
+            512, 4, kernel_size=3, stride=1, padding=1
+        )
+        self.conv5_3_norm_mbox_conf = nn.Conv2d(
+            512, 2, kernel_size=3, stride=1, padding=1
+        )
+        self.conv5_3_norm_mbox_loc = nn.Conv2d(
+            512, 4, kernel_size=3, stride=1, padding=1
+        )
 
         self.fc7_mbox_conf = nn.Conv2d(1024, 2, kernel_size=3, stride=1, padding=1)
         self.fc7_mbox_loc = nn.Conv2d(1024, 4, kernel_size=3, stride=1, padding=1)
@@ -137,11 +149,11 @@ class S3FD(nn.Module):
 
 
 class SFDDetector:
-    def __init__(self, device="cpu", path_to_detector=None, verbose=False, filter_threshold=0.5):
+    def __init__(self, device="cpu", path_to_detector=None, filter_threshold=0.5):
 
         # Initialise the face detector
         if path_to_detector is None:
-            model_weights = load_url(models_urls['s3fd'])
+            model_weights = load_url(models_urls["s3fd"])
         else:
             model_weights = torch.load(path_to_detector)
 
@@ -198,9 +210,7 @@ class SFDDetector:
         img = img.transpose(2, 0, 1)
         # Creates a batch of 1
         img = np.expand_dims(img, 0)
-
         img = torch.from_numpy(img.copy()).to(device, dtype=torch.float32)
-
         return self.batch_detect(net, img, device)
 
     def batch_detect(self, net, img_batch, device):
@@ -208,14 +218,16 @@ class SFDDetector:
         Inputs:
             - img_batch: a torch.Tensor of shape (Batch size, Channels, Height, Width)
         """
-        if 'cuda' in device:
+        if "cuda" in device:
             torch.backends.cudnn.benchmark = True
 
         batch_size = img_batch.size(0)
         img_batch = img_batch.to(device, dtype=torch.float32)
 
         img_batch = img_batch.flip(-3)  # RGB to BGR
-        img_batch = img_batch - torch.tensor([104.0, 117.0, 123.0], device=device).view(1, 3, 1, 1)
+        img_batch = img_batch - torch.tensor([104.0, 117.0, 123.0], device=device).view(
+            1, 3, 1, 1
+        )
 
         with torch.no_grad():
             olist = net(img_batch)  # patched uint8_t overflow error
@@ -238,10 +250,15 @@ class SFDDetector:
                 stride = 2 ** (i + 2)  # 4,8,16,32,64,128
                 poss = zip(*np.where(ocls[:, 1, :, :] > 0.05))
                 for Iindex, hindex, windex in poss:
-                    axc, ayc = stride / 2 + windex * stride, stride / 2 + hindex * stride
+                    axc, ayc = (
+                        stride / 2 + windex * stride,
+                        stride / 2 + hindex * stride,
+                    )
                     score = ocls[j, 1, hindex, windex]
                     loc = oreg[j, :, hindex, windex].copy().reshape(1, 4)
-                    priors = np.array([[axc / 1.0, ayc / 1.0, stride * 4 / 1.0, stride * 4 / 1.0]])
+                    priors = np.array(
+                        [[axc / 1.0, ayc / 1.0, stride * 4 / 1.0, stride * 4 / 1.0]]
+                    )
                     box = self.decode(loc, priors, variances)
                     x1, y1, x2, y2 = box[0]
                     bboxlist.append([x1, y1, x2, y2, score])
@@ -273,7 +290,13 @@ class SFDDetector:
     def nms(dets, thresh):
         if 0 == len(dets):
             return []
-        x1, y1, x2, y2, scores = dets[:, 0], dets[:, 1], dets[:, 2], dets[:, 3], dets[:, 4]
+        x1, y1, x2, y2, scores = (
+            dets[:, 0],
+            dets[:, 1],
+            dets[:, 2],
+            dets[:, 3],
+            dets[:, 4],
+        )
         areas = (x2 - x1 + 1) * (y2 - y1 + 1)
         order = scores.argsort()[::-1]
 
@@ -281,8 +304,12 @@ class SFDDetector:
         while order.size > 0:
             i = order[0]
             keep.append(i)
-            xx1, yy1 = np.maximum(x1[i], x1[order[1:]]), np.maximum(y1[i], y1[order[1:]])
-            xx2, yy2 = np.minimum(x2[i], x2[order[1:]]), np.minimum(y2[i], y2[order[1:]])
+            xx1, yy1 = np.maximum(x1[i], x1[order[1:]]), np.maximum(
+                y1[i], y1[order[1:]]
+            )
+            xx2, yy2 = np.minimum(x2[i], x2[order[1:]]), np.minimum(
+                y2[i], y2[order[1:]]
+            )
 
             w, h = np.maximum(0.0, xx2 - xx1 + 1), np.maximum(0.0, yy2 - yy1 + 1)
             ovr = w * h / (areas[i] + areas[order[1:]] - w * h)
@@ -308,7 +335,7 @@ class SFDDetector:
         # dist b/t match center and prior's center
         g_cxcy = (matched[:, :2] + matched[:, 2:]) / 2 - priors[:, :2]
         # encode variance
-        g_cxcy /= (variances[0] * priors[:, 2:])
+        g_cxcy /= variances[0] * priors[:, 2:]
         # match wh / prior wh
         g_wh = (matched[:, 2:] - matched[:, :2]) / priors[:, 2:]
         g_wh = np.log(g_wh) / variances[1]
@@ -329,9 +356,13 @@ class SFDDetector:
         Return:
             decoded bounding box predictions
         """
-        boxes = np.concatenate((
-            priors[:, :2] + loc[:, :2] * variances[0] * priors[:, 2:],
-            priors[:, 2:] * np.exp(loc[:, 2:] * variances[1])), 1)
+        boxes = np.concatenate(
+            (
+                priors[:, :2] + loc[:, :2] * variances[0] * priors[:, 2:],
+                priors[:, 2:] * np.exp(loc[:, 2:] * variances[1]),
+            ),
+            1,
+        )
         boxes[:, :2] -= boxes[:, 2:] / 2
         boxes[:, 2:] += boxes[:, :2]
         return boxes

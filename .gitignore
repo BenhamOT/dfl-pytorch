@@ -5,6 +5,7 @@ workspace_temp
 .idea
 *.npy
 *.jpg
+*.png
 *.ipynb
 extractor_dev.ipynb
 training_dev.ipynb
