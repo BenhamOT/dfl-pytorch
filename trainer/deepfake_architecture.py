@@ -9,7 +9,9 @@ class Downscale(nn.Module):
         self.in_ch = in_ch
         self.out_ch = out_ch
         self.kernel_size = kernel_size
-        self.conv1 = nn.Conv2d(self.in_ch, self.out_ch, kernel_size=kernel_size, stride=2, padding=2)
+        self.conv1 = nn.Conv2d(
+            self.in_ch, self.out_ch, kernel_size=kernel_size, stride=2, padding=2
+        )
         self.batch_norm = nn.BatchNorm2d(self.out_ch)
 
     def forward(self, x):
@@ -23,14 +25,13 @@ class Downscale(nn.Module):
 
 
 class DownscaleBlock(nn.Module):
-
     def __init__(self, in_ch, ch, n_downscales, kernel_size):
         super(DownscaleBlock, self).__init__()
         self.downs = nn.ModuleList()
 
         self.last_ch = in_ch
         for i in range(n_downscales):
-            cur_ch = ch * (min(2 ** i, 8))
+            cur_ch = ch * (min(2**i, 8))
             self.downs.append(Downscale(self.last_ch, cur_ch, kernel_size=kernel_size))
             self.last_ch = self.downs[-1].get_out_ch()
 
@@ -52,7 +53,9 @@ class Encoder(nn.Module):
 
     def get_output_length(self, input_resolution):
         downscale_block_output_channels = self.down.get_out_ch()
-        output_length = downscale_block_output_channels * (input_resolution / 2 ** 4) ** 2
+        output_length = (
+            downscale_block_output_channels * (input_resolution / 2**4) ** 2
+        )
         return int(output_length)
 
     def forward(self, inp):
@@ -63,7 +66,14 @@ class Encoder(nn.Module):
 class Upscale(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=3):
         super(Upscale, self).__init__()
-        self.deconv = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=kernel_size, stride=2, padding=1, output_padding=1)
+        self.deconv = nn.ConvTranspose2d(
+            in_ch,
+            out_ch,
+            kernel_size=kernel_size,
+            stride=2,
+            padding=1,
+            output_padding=1,
+        )
         self.batch_norm = nn.BatchNorm2d(out_ch)
 
     def forward(self, x):
@@ -82,14 +92,20 @@ class Inter(nn.Module):
         self.lowest_dense_res = lowest_dense_res
 
         self.dense1 = nn.Linear(self.in_ch, self.ae_ch)
-        self.dense2 = nn.Linear(ae_ch, self.lowest_dense_res * self.lowest_dense_res * self.ae_out_ch)
-        self.upscale1 = Upscale(self.ae_out_ch, self.ae_out_ch)  # does the kernel size need to be included here?
+        self.dense2 = nn.Linear(
+            ae_ch, self.lowest_dense_res * self.lowest_dense_res * self.ae_out_ch
+        )
+        self.upscale1 = Upscale(
+            self.ae_out_ch, self.ae_out_ch
+        )  # does the kernel size need to be included here?
 
     def forward(self, inp):
         x = inp
         x = self.dense1(x)
         x = self.dense2(x)
-        x = x.view(x.shape[0], self.ae_out_ch, self.lowest_dense_res, self.lowest_dense_res)
+        x = x.view(
+            x.shape[0], self.ae_out_ch, self.lowest_dense_res, self.lowest_dense_res
+        )
         x = self.upscale1(x)
         return x
 
@@ -124,7 +140,9 @@ class Decoder(nn.Module):
         self.res0 = ResidualBlock(d_ch * 8, kernel_size=3)
         self.res1 = ResidualBlock(d_ch * 4, kernel_size=3)
         self.res2 = ResidualBlock(d_ch * 2, kernel_size=3)
-        self.out_conv = nn.Conv2d(d_ch * 2, image_output_channels, kernel_size=1, padding="same")
+        self.out_conv = nn.Conv2d(
+            d_ch * 2, image_output_channels, kernel_size=1, padding="same"
+        )
 
         self.upscalem0 = Upscale(in_ch, d_mask_ch * 8, kernel_size=3)
         self.upscalem1 = Upscale(d_mask_ch * 8, d_mask_ch * 4, kernel_size=3)

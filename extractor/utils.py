@@ -23,7 +23,7 @@ def pil_loader(path: str, normalise=False) -> np.ndarray:
     Arguments:
          path {str} -- the input image file path
     """
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         img = Image.open(f)
         img = np.asarray(img.convert("RGB"))
         if normalise:
@@ -95,8 +95,9 @@ def crop(image, center, scale, resolution=256.0):
     br = transform([resolution, resolution], center, scale, resolution, True)
     # pad = math.ceil(torch.norm((ul - br).float()) / 2.0 - (br[0] - ul[0]) / 2.0)
     if image.ndim > 2:
-        newDim = np.array([br[1] - ul[1], br[0] - ul[0],
-                           image.shape[2]], dtype=np.int32)
+        newDim = np.array(
+            [br[1] - ul[1], br[0] - ul[0], image.shape[2]], dtype=np.int32
+        )
         newImg = np.zeros(newDim, dtype=np.uint8)
     else:
         newDim = np.array([br[1] - ul[1], br[0] - ul[0]], dtype=np.int)
@@ -109,8 +110,12 @@ def crop(image, center, scale, resolution=256.0):
     oldX = np.array([max(1, ul[0] + 1), min(br[0], wd)], dtype=np.int32)
     oldY = np.array([max(1, ul[1] + 1), min(br[1], ht)], dtype=np.int32)
 
-    newImg[newY[0] - 1:newY[1], newX[0] - 1:newX[1]] = image[oldY[0] - 1:oldY[1], oldX[0] - 1:oldX[1], :]
-    newImg = cv2.resize(newImg, dsize=(int(resolution), int(resolution)), interpolation=cv2.INTER_LINEAR)
+    newImg[newY[0] - 1 : newY[1], newX[0] - 1 : newX[1]] = image[
+        oldY[0] - 1 : oldY[1], oldX[0] - 1 : oldX[1], :
+    ]
+    newImg = cv2.resize(
+        newImg, dsize=(int(resolution), int(resolution)), interpolation=cv2.INTER_LINEAR
+    )
     return newImg
 
 
@@ -163,7 +168,9 @@ def get_preds_fromhm(hm, center=None, scale=None):
     B, C, H, W = hm.shape
     hm_reshape = hm.reshape(B, C, H * W)
     idx = np.argmax(hm_reshape, axis=-1)
-    scores = np.take_along_axis(hm_reshape, np.expand_dims(idx, axis=-1), axis=-1).squeeze(-1)
+    scores = np.take_along_axis(
+        hm_reshape, np.expand_dims(idx, axis=-1), axis=-1
+    ).squeeze(-1)
     preds, preds_orig = _get_preds_fromhm(hm, idx, center, scale)
 
     return preds, preds_orig, scores
@@ -194,8 +201,11 @@ def _get_preds_fromhm(hm, idx, center=None, scale=None):
             pX, pY = int(preds[i, j, 0]) - 1, int(preds[i, j, 1]) - 1
             if pX > 0 and pX < 63 and pY > 0 and pY < 63:
                 diff = np.array(
-                    [hm_[pY, pX + 1] - hm_[pY, pX - 1],
-                     hm_[pY + 1, pX] - hm_[pY - 1, pX]])
+                    [
+                        hm_[pY, pX + 1] - hm_[pY, pX - 1],
+                        hm_[pY + 1, pX] - hm_[pY - 1, pX],
+                    ]
+                )
                 preds[i, j] += np.sign(diff) * 0.25
 
     preds -= 0.5
@@ -204,8 +214,7 @@ def _get_preds_fromhm(hm, idx, center=None, scale=None):
     if center is not None and scale is not None:
         for i in range(B):
             for j in range(C):
-                preds_orig[i, j] = transform_np(
-                    preds[i, j], center, scale, H, True)
+                preds_orig[i, j] = transform_np(preds[i, j], center, scale, H, True)
 
     return preds, preds_orig
 
@@ -221,11 +230,76 @@ def shuffle_lr(parts, pairs=None):
         pairs {list of integers} -- [order of the flipped points] (default: {None})
     """
     if pairs is None:
-        pairs = [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
-                 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 27, 28, 29, 30, 35,
-                 34, 33, 32, 31, 45, 44, 43, 42, 47, 46, 39, 38, 37, 36, 41,
-                 40, 54, 53, 52, 51, 50, 49, 48, 59, 58, 57, 56, 55, 64, 63,
-                 62, 61, 60, 67, 66, 65]
+        pairs = [
+            16,
+            15,
+            14,
+            13,
+            12,
+            11,
+            10,
+            9,
+            8,
+            7,
+            6,
+            5,
+            4,
+            3,
+            2,
+            1,
+            0,
+            26,
+            25,
+            24,
+            23,
+            22,
+            21,
+            20,
+            19,
+            18,
+            17,
+            27,
+            28,
+            29,
+            30,
+            35,
+            34,
+            33,
+            32,
+            31,
+            45,
+            44,
+            43,
+            42,
+            47,
+            46,
+            39,
+            38,
+            37,
+            36,
+            41,
+            40,
+            54,
+            53,
+            52,
+            51,
+            50,
+            49,
+            48,
+            59,
+            58,
+            57,
+            56,
+            55,
+            64,
+            63,
+            62,
+            61,
+            60,
+            67,
+            66,
+            65,
+        ]
     if parts.ndimension() == 3:
         parts = parts[pairs, ...]
     else:
@@ -258,16 +332,24 @@ def save_landmarks_on_image(image, landmarks, file_path):
         x, y = landmark
         # display landmarks on "image_cropped"
         # with white colour in BGR and thickness 1
-        cv2.circle(img=image, center=(int(x), int(y)), radius=1, color=(255, 255, 255), thickness=1)
+        cv2.circle(
+            img=image,
+            center=(int(x), int(y)),
+            radius=1,
+            color=(255, 255, 255),
+            thickness=1,
+        )
         plt.axis("off")
 
     plt.imsave(file_path, image)
 
 
-def load_file_from_url(url, model_dir=None, progress=True, check_hash=False, file_name=None):
+def load_file_from_url(
+    url, model_dir=None, progress=True, check_hash=False, file_name=None
+):
     if model_dir is None:
         hub_dir = get_dir()
-        model_dir = os.path.join(hub_dir, 'checkpoints')
+        model_dir = os.path.join(hub_dir, "checkpoints")
 
     try:
         os.makedirs(model_dir)
