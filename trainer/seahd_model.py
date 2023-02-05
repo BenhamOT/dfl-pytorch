@@ -4,8 +4,8 @@ import torchshow as ts
 from torchmetrics import StructuralSimilarityIndexMeasure
 from trainer.deepfake_architecture import Encoder, Decoder, Inter
 from trainer.utils import gaussian_blur
+from trainer.base_model import BaseModelABC
 from params import Params
-from base_model import BaseModelABC
 
 
 class SAEHDModel(BaseModelABC):

@@ -11,22 +11,22 @@ if __name__ == "__main__":
     # extract_frames_from_video(Params.src_video_file_path, Params.data_src_dir, Params.image_extension)
     # extract_frames_from_video(Params.dst_video_file_path, Params.data_dst_dir, Params.image_extension)
 
-    # extract_faces_from_frames(
-    #     input_path=Params.data_src_dir,
-    #     images_output_path=Params.data_src_aligned_dir,
-    #     landmarks_output_path=Params.data_src_landmarks_dir,
-    #     max_faces_from_image=Params.max_faces_from_image,
-    #     image_size=Params.image_size
-    # )
-    # extract_faces_from_frames(
-    #     input_path=Params.data_dst_dir,
-    #     images_output_path=Params.data_dst_aligned_dir,
-    #     landmarks_output_path=Params.data_dst_landmarks_dir,
-    #     max_faces_from_image=Params.max_faces_from_image,
-    #     image_size=Params.image_size
-    # )
+    extract_faces_from_frames(
+        input_path=Params.data_src_dir,
+        images_output_path=Params.data_src_aligned_dir,
+        landmarks_output_path=Params.data_src_landmarks_dir,
+        max_faces_from_image=Params.max_faces_from_image,
+        image_size=Params.image_size,
+    )
+    extract_faces_from_frames(
+        input_path=Params.data_dst_dir,
+        images_output_path=Params.data_dst_aligned_dir,
+        landmarks_output_path=Params.data_dst_landmarks_dir,
+        max_faces_from_image=Params.max_faces_from_image,
+        image_size=Params.image_size,
+    )
 
     # saehd = SAEHDModel()
     # saehd.run(src_path=Params.data_src_dir, dst_path=Params.data_dst_dir)
-    autoencoder = Autoencoder()
-    autoencoder.run(src_path=Params.data_src_dir, dst_path=Params.data_dst_dir)
+    # autoencoder = Autoencoder()
+    # autoencoder.run(src_path=Params.data_src_dir, dst_path=Params.data_dst_dir)

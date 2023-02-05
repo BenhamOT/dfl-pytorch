@@ -102,7 +102,6 @@ class ExtractFaces:
         file_name = data.file_name
         rects = data.rects
         landmarks = data.landmarks
-
         if landmarks is None:
             return data
 
@@ -141,7 +140,6 @@ def extract_faces_from_frames(
     landmarks_output_path=None,
     max_faces_from_image=None,
     image_size=None,
-    jpeg_quality=None,
 ):
     input_image_paths = [
         os.path.join(input_path, x)

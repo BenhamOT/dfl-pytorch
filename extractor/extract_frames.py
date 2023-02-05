@@ -15,7 +15,7 @@ def extract_frames_from_video(
     if output_ext == ".jpg":
         kwargs.update({"q:v": "2"})  # highest quality for jpg
 
-    job = job.output(str(output_path / ("%5d." + output_ext)), **kwargs)
+    job = job.output(str(output_path / ("%5d" + output_ext)), **kwargs)
 
     try:
         job.run()

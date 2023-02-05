@@ -50,7 +50,6 @@ class TestExtractFace(unittest.TestCase):
             landmarks_output_path=self.landmarks_folder,
             max_faces_from_image=1,
             image_size=512,
-            jpeg_quality=100,
         )
 
         # visual validation

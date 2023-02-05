@@ -16,10 +16,10 @@ class Params:
     data_dst_landmarks_dir = data_dst_dir + "landmarks/"
 
     # extraction settings
-    max_faces_from_image = (1,)
-    image_size = (512,)
+    max_faces_from_image = 1
+    image_size = 512
     jpeg_quality = 100
-    image_extension = ".jpg"
+    image_extension = ".png"
 
     # data loader settings
     border_mode = cv2.BORDER_REPLICATE

@@ -7,13 +7,13 @@ class BaseModelABC(ABC):
     """
 
     @staticmethod
-    def train(sample):
+    def train(sample) -> None:
         pass
 
     @staticmethod
-    def save(path):
+    def save(path) -> None:
         pass
 
     @staticmethod
-    def load(path):
+    def load(path) -> None:
         pass
