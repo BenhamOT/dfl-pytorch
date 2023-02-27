@@ -17,7 +17,7 @@ from params import Params
 
 
 class CustomImageDataset(Dataset):
-    def __init__(self):
+    def __init__(self) -> None:
         # define src and dst image and landmark directories
         self.data_src_aligned_dir = Params.data_src_aligned_dir
         self.data_dst_aligned_dir = Params.data_dst_aligned_dir
@@ -149,7 +149,7 @@ class CustomImageDataset(Dataset):
 
 
 class CustomDataLoader:
-    def __init__(self, batch_size: int = Params.batch_size):
+    def __init__(self, batch_size: int = Params.batch_size) -> None:
         self.batch_size = batch_size
 
     def run(self) -> DataLoader:

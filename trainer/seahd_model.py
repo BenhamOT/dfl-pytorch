@@ -1,6 +1,7 @@
 import torch
 import torch.optim as optim
 import torchshow as ts
+from typing import List, Dict, Type
 from torchmetrics import StructuralSimilarityIndexMeasure
 from trainer.deepfake_architecture import Encoder, Decoder, Inter
 from trainer.utils import gaussian_blur
@@ -9,7 +10,7 @@ from params import Params
 
 
 class SAEHDModel(BaseModelABC):
-    def __init__(self):
+    def __init__(self) -> None:
         self.resolution = Params.resolution
         self.e_dims = Params.e_dims
         self.ae_dims = Params.ae_dims
@@ -62,12 +63,19 @@ class SAEHDModel(BaseModelABC):
         self.inter_AB_optimiser = optim.Adam(self.inter_AB.parameters())
         self.decoder_optimiser = optim.Adam(self.decoder.parameters())
 
-    def compute_ssim_loss(self, target, prediction):
+    def compute_ssim_loss(
+        self, target: torch.tensor, prediction: torch.tensor
+    ) -> torch.tensor:
         return 1 - self.ssim(prediction, target)
 
     def compute_loss(
-        self, target, prediction, target_mask, predicted_mask, target_eyes_mask
-    ):
+        self,
+        target: torch.tensor,
+        prediction: torch.tensor,
+        target_mask: torch.tensor,
+        predicted_mask: torch.tensor,
+        target_eyes_mask: torch.tensor,
+    ) -> torch.tensor:
         if self.resolution < 256:
             loss = 10 * self.compute_ssim_loss(target, prediction)
         else:
@@ -89,7 +97,7 @@ class SAEHDModel(BaseModelABC):
         )
         return loss
 
-    def train(self, sample):
+    def train(self, sample: Dict[str, torch.Tensor]) -> List[torch.Tensor]:
         self.encoder.zero_grad()
         self.inter_B.zero_grad()
         self.inter_AB.zero_grad()
@@ -175,11 +183,11 @@ class SAEHDModel(BaseModelABC):
         self.inter_AB_optimiser.step()
         self.decoder_optimiser.step()
 
-        return src_loss, dst_loss, G_loss
+        return [src_loss, dst_loss, G_loss]
 
-    def save(self, path):
+    def save(self, path: str) -> None:
         # use of MLFlow or similar for model tracking and saving
         pass
 
-    def load(self, path):
+    def load(self, path: str) -> Type[BaseModelABC]:
         pass

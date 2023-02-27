@@ -1,13 +1,15 @@
 import torch
 import torch.optim as optim
+from typing import List, Dict, Type
 from torchmetrics import StructuralSimilarityIndexMeasure
 from trainer.deepfake_architecture import Encoder, Decoder, Inter
 from trainer.utils import gaussian_blur
 from params import Params
+from base_model import BaseModelABC
 
 
 class Autoencoder:
-    def __init__(self):
+    def __init__(self) -> None:
         self.resolution = Params.resolution
         self.e_dims = Params.e_dims
         self.ae_dims = Params.ae_dims
@@ -60,10 +62,12 @@ class Autoencoder:
         self.inter_AB_optimiser = optim.Adam(self.inter_AB.parameters())
         self.decoder_optimiser = optim.Adam(self.decoder.parameters())
 
-    def compute_loss(self, target, prediction):
+    def compute_loss(
+        self, target: torch.tensor, prediction: torch.tensor
+    ) -> torch.tensor:
         return 1 - self.ssim(prediction, target)
 
-    def train(self, sample):
+    def train(self, sample: Dict[str, torch.tensor]) -> torch.tensor:
         self.encoder.zero_grad()
         self.inter_B.zero_grad()
         self.inter_AB.zero_grad()
@@ -105,8 +109,9 @@ class Autoencoder:
         self.decoder_optimiser.step()
         return G_loss, src_src_pred_masked_opt
 
-    def save(self, path):
+    def save(self, path: str) -> None:
+        # use of MLFlow or similar for model tracking and saving
         pass
 
-    def load(self, path):
+    def load(self, path: str) -> Type[BaseModelABC]:
         pass
