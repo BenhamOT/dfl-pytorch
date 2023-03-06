@@ -107,7 +107,7 @@ class Autoencoder:
         self.inter_B_optimiser.step()
         self.inter_AB_optimiser.step()
         self.decoder_optimiser.step()
-        return G_loss, src_src_pred_masked_opt
+        return [G_loss, src_src_pred_masked_opt]
 
     def save(self, path: str) -> None:
         # use of MLFlow or similar for model tracking and saving

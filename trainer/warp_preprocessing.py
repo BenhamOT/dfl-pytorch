@@ -1,8 +1,9 @@
 import numpy as np
 import cv2
+from typing import Tuple, List, Dict
 
 
-def random_normal(size=(1,), trunc_val=2.5):
+def random_normal(size: Tuple = (1,), trunc_val: float = 2.5) -> np.array:
     length = np.array(size).prod()
     result = np.empty((length,), dtype=np.float32)
 
@@ -17,14 +18,14 @@ def random_normal(size=(1,), trunc_val=2.5):
 
 
 def gen_warp_params(
-    w,
-    flip=True,
-    rotation_range=[-10, 10],
-    scale_range=[-0.05, 0.05],
-    tx_range=[-0.05, 0.05],
-    ty_range=[-0.05, 0.05],
+    w: int,
+    flip: bool = True,
+    rotation_range: List = [-10, 10],
+    scale_range: List = [-0.05, 0.05],
+    tx_range: List = [-0.05, 0.05],
+    ty_range: List = [-0.05, 0.05],
     rnd_state=None,
-):
+) -> Dict:
     if rnd_state is None:
         rnd_state = np.random
 
@@ -74,14 +75,14 @@ def gen_warp_params(
 
 
 def warp_by_params(
-    params,
-    img,
-    random_warp,
-    transform,
-    can_flip,
-    border_mode,
-    cv2_inter=cv2.INTER_CUBIC,
-):
+    params: Dict,
+    img: np.array,
+    random_warp: bool,
+    transform: bool,
+    can_flip: bool,
+    border_mode: int,
+    cv2_inter: int = cv2.INTER_CUBIC,
+) -> np.array:
     if random_warp:
         img = cv2.remap(img, params["mapx"], params["mapy"], cv2_inter)
     if transform:

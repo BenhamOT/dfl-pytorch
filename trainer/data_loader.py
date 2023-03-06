@@ -8,7 +8,6 @@ from typing import Dict, List
 from torch.utils.data import DataLoader, Dataset
 from extractor.utils import pil_loader
 from extractor.landmarks_processor import (
-    get_transform_mat,
     get_image_hull_mask,
     get_image_eye_mask,
 )

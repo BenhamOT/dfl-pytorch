@@ -21,7 +21,7 @@ def pil_loader(path: str, normalise=False) -> np.ndarray:
     Load image as RGB numpy array
 
     Arguments:
-         path {str} -- the input image file path
+         path (str): The input image file path
     """
     with open(path, "rb") as f:
         img = Image.open(f)
@@ -36,7 +36,7 @@ def mkdir_or_delete_existing_files(path):
     Make a new directory for images or landmark data files or delete files from an existing directory
 
     Args:
-        path {str} -- the directory path
+        path (str): The directory path
     """
     if os.path.isdir(path):
         for file in os.listdir(path):
