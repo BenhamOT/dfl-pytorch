@@ -1,4 +1,6 @@
-from abc import ABC
+import torch
+from abc import ABC, abstractmethod
+from typing import Type, Self, Dict, List
 
 
 class BaseModelABC(ABC):
@@ -6,14 +8,14 @@ class BaseModelABC(ABC):
     Base class that defines the structure of any model classes that needs to be created for training
     """
 
-    @staticmethod
-    def train(sample) -> None:
-        pass
+    @abstractmethod
+    def train(self, sample: Dict[str, torch.tensor]) -> List[torch.tensor]:
+        raise NotImplementedError
 
-    @staticmethod
-    def save(path) -> None:
-        pass
+    @abstractmethod
+    def save(self, path: str) -> None:
+        raise NotImplementedError
 
-    @staticmethod
-    def load(path) -> None:
-        pass
+    @abstractmethod
+    def load(self, path: str) -> Type[Self]:
+        raise NotImplementedError

@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from PIL import Image
+from typing import List
 
 from params import Params
 from extractor.utils import pil_loader, mkdir_or_delete_existing_files
@@ -12,10 +13,14 @@ from extractor.fan2d import FaceAlignment
 from extractor.landmarks_processor import get_transform_mat, transform_points
 
 
-class Data:
+class ExtractData:
     def __init__(
-        self, filepath=None, rects=None, landmarks=None, final_output_files=None
-    ):
+        self,
+        filepath: str = None,
+        rects: List[np.array] = None,
+        landmarks: List[np.array] = None,
+        final_output_files: List[str] = None,
+    ) -> None:
         self.filepath = filepath
         self.file_name = filepath.split("/")[-1].replace(Params.image_extension, "")
         self.rects = rects or []
@@ -28,12 +33,11 @@ class Data:
 class ExtractFaces:
     def __init__(
         self,
-        input_data,
-        image_size=None,
-        max_faces_from_image=0,
-        images_output_path=None,
-        landmarks_output_path=None,
-        device_config=None,
+        input_data: List[str],
+        image_size: int,
+        images_output_path: str,
+        landmarks_output_path: str,
+        max_faces_from_image: int = 0,
     ):
 
         self.input_data = input_data
@@ -41,7 +45,6 @@ class ExtractFaces:
         self.max_faces_from_image = max_faces_from_image
         self.images_output_path = images_output_path
         self.landmarks_output_path = landmarks_output_path
-        self.device_config = device_config
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print("Device = {}".format(self.device))
         self.rects_extractor = SFDDetector(
@@ -53,14 +56,14 @@ class ExtractFaces:
         )
         self.detected_faces = None
 
-    def run(self):
+    def run(self) -> None:
         self.detected_faces = 0
         for image_file_path in tqdm(self.input_data):
-            data = Data(filepath=image_file_path)
+            data = ExtractData(filepath=image_file_path)
             data = self.process_data(data)
             self.detected_faces += data.faces_detected
 
-    def process_data(self, data):
+    def process_data(self, data: ExtractData) -> ExtractData:
         filepath = data.filepath
         image = pil_loader(filepath)
 
@@ -77,7 +80,12 @@ class ExtractFaces:
         return data
 
     @staticmethod
-    def rects_stage(data, image, max_faces_from_image, rects_extractor):
+    def rects_stage(
+        data: ExtractData,
+        image: np.ndarray,
+        max_faces_from_image: int,
+        rects_extractor: SFDDetector,
+    ) -> ExtractData:
         h, w, c = image.shape
         if min(h, w) < 128:
             # Image is too small
@@ -90,14 +98,18 @@ class ExtractFaces:
         return data
 
     @staticmethod
-    def landmarks_stage(data, image, landmarks_extractor):
+    def landmarks_stage(
+        data: ExtractData, image: np.ndarray, landmarks_extractor: FaceAlignment
+    ) -> ExtractData:
         if not data.rects:
             return data
 
         data.landmarks = landmarks_extractor.get_landmarks_from_image(image, data.rects)
         return data
 
-    def final_stage(self, data, image, image_size):
+    def final_stage(
+        self, data: ExtractData, image: np.ndarray, image_size: int
+    ) -> ExtractData:
         data.final_output_files = []
         file_name = data.file_name
         rects = data.rects
@@ -135,12 +147,12 @@ class ExtractFaces:
 
 
 def extract_faces_from_frames(
-    input_path,
-    images_output_path=None,
-    landmarks_output_path=None,
-    max_faces_from_image=None,
-    image_size=None,
-):
+    input_path: str,
+    images_output_path: str,
+    landmarks_output_path: str,
+    image_size: int,
+    max_faces_from_image: int = 0,
+) -> None:
     input_image_paths = [
         os.path.join(input_path, x)
         for x in os.listdir(input_path)
